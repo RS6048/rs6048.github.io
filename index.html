@@ -3,8 +3,137 @@
   <head>
     <title>RS6048's public collection</title>
     <link rel="icon" type="image/png" href="favicon-32x32.png" sizes="32x32">
+    <style>
+        .nav-link:hover {
+            transform: translateY(-2px);
+            text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        }
+    </style>
   </head>
-  <body>
+<body class="bg-gray-50 min-h-screen">
+    <!-- 导航栏 -->
+    <nav class="bg-indigo-600 text-white shadow-lg">
+        <div class="container mx-auto px-6 py-3">
+            <div class="flex justify-between items-center">
+                <div class="text-2xl font-bold">RS6048的公开库</div>
+                <div class="hidden md:flex space-x-8">
+                    <a href="#" class="nav-link transition duration-300">首页</a>
+                    <a href="#" class="nav-link transition duration-300">项目</a>
+                    <a href="#" class="nav-link transition duration-300">文章</a>
+                    <a href="#" class="nav-link transition duration-300">资源</a>
+                    <a href="#" class="nav-link transition duration-300">关于</a>
+                </div>
+                <button class="md:hidden focus:outline-none">
+                    <i class="fas fa-bars text-xl"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
 
+    <!-- 主要内容 -->
+    <main class="container mx-auto px-6 py-8">
+        <section class="mb-12">
+            <h1 class="text-4xl font-bold text-gray-800 mb-4">欢迎来到我的知识库</h1>
+            <p class="text-lg text-gray-600 mb-6">
+                这里汇集了我的技术笔记、开源项目和各类学习资源，希望能对你有所帮助。
+            </p>
+            <div class="bg-indigo-100 border-l-4 border-indigo-500 p-4">
+                <p class="text-indigo-700">最近更新：2025年8月15日 - 新增了Python机器学习实战系列文章</p>
+            </div>
+        </section>
+
+        <section class="grid md:grid-cols-3 gap-6 mb-12">
+            <div class="bg-white rounded-lg shadow-md p-6 card transition duration-300">
+                <h2 class="text-xl font-semibold text-gray-800 mb-3"><i class="fas fa-code mr-2 text-indigo-500"></i>技术文章</h2>
+                <p class="text-gray-600 mb-4">分享编程技巧、算法解析和系统设计等原创技术文章。</p>
+                <a href="#" class="text-indigo-600 hover:text-indigo-800 font-medium">查看全部 →</a>
+            </div>
+            <div class="bg-white rounded-lg shadow-md p-6 card transition duration-300">
+                <h2 class="text-xl font-semibold text-gray-800 mb-3"><i class="fas fa-project-diagram mr-2 text-indigo-500"></i>开源项目</h2>
+                <p class="text-gray-600 mb-4">展示我参与或主导的开源项目，欢迎贡献和反馈。</p>
+                <a href="#" class="text-indigo-600 hover:text-indigo-800 font-medium">浏览项目 →</a>
+            </div>
+            <div class="bg-white rounded-lg shadow-md p-6 card transition duration-300">
+                <h2 class="text-xl font-semibold text-gray-800 mb-3"><i class="fas fa-book mr-2 text-indigo-500"></i>学习资源</h2>
+                <p class="text-gray-600 mb-4">整理的学习路线、推荐书籍和实用工具集合。</p>
+                <a href="#" class="text-indigo-600 hover:text-indigo-800 font-medium">获取资源 →</a>
+            </div>
+        </section>
+
+        <section class="mb-12">
+            <h2 class="text-2xl font-bold text-gray-800 mb-6 border-b pb-2">最新内容</h2>
+            <div class="space-y-4">
+                <div class="bg-white rounded-lg shadow-sm p-4 hover:shadow-md transition duration-300">
+                    <h3 class="text-lg font-semibold text-gray-800">Python异步编程实践指南</h3>
+                    <p class="text-gray-600 text-sm mb-2">2025年8月10日 | 技术文章</p>
+                    <p class="text-gray-700">深入探讨asyncio模块的使用技巧和最佳实践...</p>
+                </div>
+                <div class="bg-white rounded-lg shadow-sm p-4 hover:shadow-md transition duration-300">
+                    <h3 class="text-lg font-semibold text-gray-800">WebRTC视频会议系统</h3>
+                    <p class="text-gray-600 text-sm mb-2">2025年7月25日 | 开源项目</p>
+                    <p class="text-gray-700">基于WebRTC实现的点对点视频通信解决方案...</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- 页脚 -->
+    <footer class="bg-gray-800 text-white py-8">
+        <div class="container mx-auto px-6">
+            <div class="grid md:grid-cols-4 gap-8">
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">RS6048的公开库</h3>
+                    <p class="text-gray-400">记录、分享与成长</p>
+                </div>
+                <div>
+                    <h4 class="font-medium mb-4">快速链接</h4>
+                    <ul class="space-y-2">
+                        <li><a href="#" class="text-gray-400 hover:text-white transition">首页</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition">项目</a></li>
+                        <li><a href="#" class="text-gray-400 hover:text-white transition">文章</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-medium mb-4">联系方式</h4>
+                    <ul class="space-y-2">
+                        <li class="text-gray-400"><i class="fas fa-envelope mr-2"></i>contact@rs6048.com</li>
+                        <li class="text-gray-400"><i class="fab fa-github mr-2"></i>github.com/rs6048</li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-medium mb-4">订阅更新</h4>
+                    <div class="flex">
+                        <input type="email" placeholder="您的邮箱" class="px-4 py-2 rounded-l text-gray-800 w-full">
+                        <button class="bg-indigo-600 px-4 py-2 rounded-r hover:bg-indigo-700 transition">订阅</button>
+                    </div>
+                </div>
+            </div>
+            <div class="border-t border-gray-700 mt-8 pt-6 text-center text-gray-400">
+                <p>© 2025 RS6048的公开库. 保留所有权利.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // 移动端菜单切换
+        document.querySelector('button').addEventListener('click', function() {
+            const navLinks = document.querySelector('.md\\:flex');
+            navLinks.classList.toggle('hidden');
+            navLinks.classList.toggle('flex');
+            navLinks.classList.toggle('flex-col');
+            navLinks.classList.toggle('absolute');
+            navLinks.classList.toggle('bg-indigo-700');
+            navLinks.classList.toggle('w-full');
+            navLinks.classList.toggle('left-0');
+            navLinks.classList.toggle('top-16');
+            navLinks.classList.toggle('p-4');
+            navLinks.classList.toggle('space-y-4');
+            navLinks.classList.toggle('space-x-0');
+        });
+    </script>
   </body>
 </html>
