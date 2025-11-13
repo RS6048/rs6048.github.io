@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>分类目录 - 多元探索</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- 导航栏 -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-logo">
+                <i class="fas fa-compass"></i>
+                <span>多元探索</span>
+            </div>
+            <ul class="nav-menu">
+                <li class="nav-item"><a href="index.html" class="nav-link">首页</a></li>
+                <li class="nav-item"><a href="directory.html" class="nav-link active">分类目录</a></li>
+                <li class="nav-item"><a href="#" class="nav-link">发现</a></li>
+                <li class="nav-item"><a href="#" class="nav-link">关于</a></li>
+            </ul>
+            <div class="nav-actions">
+                <button class="theme-toggle" id="themeToggle">
+                    <i class="fas fa-moon"></i>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- 目录页内容 -->
+    <div class="directory-container">
+        <div class="directory-header">
+            <h1>全部分类</h1>
+            <p>探索我们精心整理的多元化内容分类</p>
+            <div class="directory-stats">
+                <div class="stat-item">
+                    <span class="stat-number">4</span>
+                    <span class="stat-label">主分类</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">375</span>
+                    <span class="stat-label">总文章</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number">24</span>
+                    <span class="stat-label">专题合集</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 分类网格 -->
+        <div class="directory-grid">
+            <!-- 科技分类 -->
+            <div class="directory-category">
+                <div class="category-header">
+                    <div class="category-icon large">
+                        <i class="fas fa-laptop-code"></i>
+                    </div>
+                    <div class="category-info">
+                        <h2>科技数码</h2>
+                        <p>探索科技前沿，了解数码产品最新动态</p>
+                        <span class="article-count">128 篇文章</span>
+                </div>
+                <div class="subcategories">
+                    <div class="subcategory">
+                        <h4>人工智能</h4>
+                        <span class="sub-count">24篇</span>
+                    </div>
+                    <div class="subcategory">
+                        <h4>编程开发</h4>
+                        <span class="sub-count">36篇</span>
+                    </div>
+                    <div class="subcategory">
+                        <h4>硬件评测</h4>
+                        <span class="sub-count">28篇</span>
+                    </div>
+                    <div class="subcategory">
+                        <h4>软件应用</h4>
+                        <span class="sub-count">40篇</span>
+                    </div>
+                </div>
+                <div class="category-actions">
+                    <button class="btn btn-outline">浏览全部</button>
+                </div>
+            </div>
+
+            <!-- 艺术分类 -->
+            <div class="directory-category">
+                <div class="category-header">
+                    <div class="category-icon large">
+                        <i class="fas fa-palette"></i>
+                    </div>
+                    <div class="category-info">
+                        <h2>艺术文化</h2>
+                        <p>欣赏经典作品，学习创作技巧</p>
+                        <span class="article-count">96 篇文章</span>
+                    </div>
+                </div>
+                <div class="subcategories">
+                    <div class="subcategory">
+                        <h4>文学作品</h4>
+                        <span class="sub-count">32篇</span>
+                    </div>
+                    <div class="subcategory">
+                        <h4>艺术鉴赏</h4>
+                        <span class="sub-count">28篇</span>
+                    </div>
+                    <div class="subcategory">
+                        <h4>创作技巧</h4>
+                        <span class="sub-count">36篇</span>
+                    </div>
+                </div>
+                <div class="category-actions">
+                    <button class="btn btn-outline">浏览全部</button>
+                </div>
+            </div>
+
+            <!-- 生活分类 -->
+            <div class="directory-category">
+                <div class="category-header">
+                    <div class="category-icon large">
+                        <i class="fas fa-heartbeat"></i>
+                    </div>
+                    <div class="category-info">
+                        <h2>健康生活</h2>
+                        <p>关注身心健康，提升生活品质</p>
+                        <span class="article-count">84 篇文章</span>
+                    </div>
+                </div>
+                <div class="subcategories">
+                    <div class="subcategory">
+                        <h4>健身营养</h4>
+                        <span class="sub-count">24篇</span>
+                    </div>
+                    <div class="subcategory">
+                        <h4>心理健康</h4>
+                        <span class="sub-count">20篇</span>
+                    </div>
+                    <div class="subcategory">
+                        <h4>生活方式</h4>
+                        <span class="sub-count">40篇</span>
+                    </div>
+                </div>
+                <div class="category-actions">
+                    <button class="btn btn-outline">浏览全部</button>
+                </div>
+            </div>
+
+            <!-- 旅行分类 -->
+            <div class="directory-category">
+                <div class="category-header">
+                    <div class="category-icon large">
+                        <i class="fas fa-globe-asia"></i>
+                    </div>
+                    <div class="category-info">
+                        <h2>旅行探索</h2>
+                        <p>发现世界美景，分享旅行经验</p>
+                        <span class="article-count">67 篇文章</span>
+                    </div>
+                </div>
+                <div class="subcategories">
+                    <div class="subcategory">
+                        <h4>旅行攻略</h4>
+                        <span class="sub-count">28篇</span>
+                    </div>
+                    <div class="subcategory">
+                        <h4>文化体验</h4>
+                        <span class="sub-count">20篇</span>
+                    </div>
+                    <div class="subcategory">
+                        <h4>风景摄影</h4>
+                        <span class="sub-count">19篇</span>
+                    </div>
+                </div>
+                <div class="category-actions">
+                    <button class="btn btn-outline">浏览全部</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 页脚 -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h3>多元探索</h3>
+                    <p>致力于为您提供最全面、最有趣的多元内容体验</p>
+                </div>
+                <div class="footer-section">
+                    <h4>快速链接</h4>
+                    <ul>
+                        <li><a href="index.html">首页</a></li>
+                        <li><a href="directory.html">分类目录</a></li>
+                        <li><a href="#">最新内容</a></li>
+                        <li><a href="#">热门排行</a></li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>内容分类</h4>
+                    <ul>
+                        <li><a href="#">科技数码</a></li>
+                        <li><a href="#">艺术文化</a></li>
+                        <li><a href="#">健康生活</a></li>
+                        <li><a href="#">旅行探索</a></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 多元探索. 保留所有权利.</p>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
