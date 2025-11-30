@@ -108,7 +108,7 @@
                     <i class="fa fa-pencil mr-2"></i>自定义卡牌
                 </button>
                 <button id="reset-btn" class="bg-accent hover:bg-yellow-600 text-white font-bold py-3 px-6 rounded-lg shadow-lg transition-all duration-300 transform hover:scale-105">
-                    <i class="fa fa-refresh mr-2"></i>重置
+                    <i class="fa fa-refresh mr-2"></i>重置游戏
                 </button>
             </div>
         </main>
@@ -174,9 +174,39 @@
             isProcessing: false,
             isCustomizing: false
         };
+        
+        // Cookie 操作函数
+        function setCookie(name, value, days) {
+            const d = new Date();
+            d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
+            const expires = "expires=" + d.toUTCString();
+            document.cookie = name + "=" + JSON.stringify(value) + ";" + expires + ";path=/";
+        }
+        
+        function getCookie(name) {
+            const nameEQ = name + "=";
+            const ca = document.cookie.split(';');
+            for (let i = 0; i < ca.length; i++) {
+                let c = ca[i];
+                while (c.charAt(0) === ' ') c = c.substring(1, c.length);
+                if (c.indexOf(nameEQ) === 0) return JSON.parse(c.substring(nameEQ.length, c.length));
+            }
+            return null;
+        }
+        
+        function deleteCookie(name) {
+            setCookie(name, "", -1);
+        }
 
         // 初始化游戏
         function initGame() {
+            // 从Cookie加载卡牌设置
+            const savedCards = getCookie('flipCardSettings');
+            if (savedCards) {
+                gameState.cards = savedCards;
+                console.log('已从Cookie加载卡牌设置');
+            }
+            
             // 打乱卡牌顺序
             shuffleCards();
             
@@ -223,7 +253,7 @@
                     </div>
                     <div class="card-front w-full h-full bg-white rounded-lg shadow-md p-2">
                         <div class="card-content ${card.color}">
-                            <span class="text-4xl">${card.content}</span>
+                            <span class="text-4xl font-bold">${card.content}</span>
                         </div>
                     </div>
                 </div>
@@ -430,6 +460,10 @@
                 const textColors = ['text-red-500', 'text-blue-500', 'text-green-500', 'text-yellow-500', 'text-purple-500', 'text-pink-500', 'text-indigo-500', 'text-teal-500', 'text-orange-500', 'text-red-600', 'text-blue-600', 'text-green-600'];
                 gameState.cards[index].color = textColors[Math.floor(Math.random() * textColors.length)];
             });
+            
+            // 保存卡牌设置到Cookie
+            setCookie('flipCardSettings', gameState.cards, 30); // 保存30天
+            console.log('卡牌设置已保存到Cookie');
             
             // 关闭模态框
             customizeModal.classList.add('hidden');
