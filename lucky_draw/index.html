@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>幸运抽奖 | 智能抽奖系统</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdn.jsdelivr.net/npm/font-awesome@4.7.0/css/font-awesome.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Tailwind 配置 -->
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'electric-blue': '#00D9FF',
+                        'deep-purple': '#6C5CE7',
+                        'neon-pink': '#FF10F0',
+                        'diamond': '#B9F2FF',
+                        'gold': '#FFD700',
+                        'silver': '#C0C0C0',
+                        'bronze': '#CD7F32',
+                        'success-green': '#00E676',
+                        'warning-orange': '#FF9500',
+                        'error-red': '#FF1744',
+                        'space-dark': '#0F2027',
+                        'space-purple': '#2D1B69',
+                        'space-blue': '#1a1a2e'
+                    },
+                    fontFamily: {
+                        inter: ['Inter', 'sans-serif'],
+                        'noto-sans': ['"Noto Sans SC"', 'sans-serif']
+                    },
+                    animation: {
+                        'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'float': 'float 6s ease-in-out infinite',
+                        'glow': 'glow 2s ease-in-out infinite alternate',
+                        'spin-slow': 'spin 8s linear infinite',
+                        'shine': 'shine 2s ease-in-out infinite alternate',
+                        'bounce-in': 'bounce-in 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275)'
+                    },
+                    keyframes: {
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-10px)' }
+                        },
+                        glow: {
+                            '0%': { boxShadow: '0 0 5px rgba(108, 92, 231, 0.5)' },
+                            '100%': { boxShadow: '0 0 20px rgba(108, 92, 231, 0.8), 0 0 30px rgba(0, 217, 255, 0.6)' }
+                        },
+                        shine: {
+                            '0%': { backgroundPosition: '-100px' },
+                            '100%': { backgroundPosition: '200px' }
+                        },
+                        'bounce-in': {
+                            '0%': { transform: 'scale(0.3)', opacity: 0 },
+                            '50%': { transform: 'scale(1.05)', opacity: 1 },
+                            '70%': { transform: 'scale(0.9)' },
+                            '100%': { transform: 'scale(1)' }
+                        }
+                    },
+                    backgroundImage: {
+                        'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
+                        'shine-effect': 'linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0) 100%)'
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style type="text/tailwindcss">
+        @layer utilities {
+            .content-auto {
+                content-visibility: auto;
+            }
+            .text-shadow {
+                text-shadow: 0 0 8px rgba(0, 217, 255, 0.8);
+            }
+            .text-shadow-glow {
+                text-shadow: 0 0 10px currentColor;
+            }
+            .glass {
+                background: rgba(255, 255, 255, 0.05);
+                backdrop-filter: blur(10px);
+                -webkit-backdrop-filter: blur(10px);
+                border: 1px solid rgba(255, 255, 255, 0.1);
+            }
+            .neo {
+                box-shadow: 
+                    5px 5px 15px rgba(0, 0, 0, 0.3),
+                    -5px -5px 15px rgba(255, 255, 255, 0.05);
+            }
+            .neo-inset {
+                box-shadow: 
+                    inset 3px 3px 7px rgba(0, 0, 0, 0.3),
+                    inset -3px -3px 7px rgba(255, 255, 255, 0.05);
+            }
+            .prize-glow-diamond {
+                box-shadow: 0 0 15px rgba(185, 242, 255, 0.8), 0 0 30px rgba(185, 242, 255, 0.4);
+            }
+            .prize-glow-gold {
+                box-shadow: 0 0 15px rgba(255, 215, 0, 0.8), 0 0 30px rgba(255, 215, 0, 0.4);
+            }
+            .prize-glow-silver {
+                box-shadow: 0 0 15px rgba(192, 192, 192, 0.8), 0 0 30px rgba(192, 192, 192, 0.4);
+            }
+            .prize-glow-bronze {
+                box-shadow: 0 0 15px rgba(205, 127, 50, 0.8), 0 0 30px rgba(205, 127, 50, 0.4);
+            }
+            .gradient-text {
+                background-clip: text;
+                -webkit-background-clip: text;
+                color: transparent;
+            }
+            .star {
+                position: absolute;
+                background-color: white;
+                border-radius: 50%;
+                animation: twinkle 2s infinite alternate;
+            }
+            .particle {
+                position: absolute;
+                border-radius: 50%;
+                pointer-events: none;
+            }
+            .confetti {
+                position: absolute;
+                width: 10px;
+                height: 10px;
+                pointer-events: none;
+            }
+            .shine {
+                position: relative;
+                overflow: hidden;
+                background-image: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,0.2) 50%, rgba(255,255,255,0) 100%);
+                background-size: 200px 100%;
+                animation: shine 2s ease-in-out infinite;
+            }
+            .switch {
+                position: relative;
+                display: inline-block;
+                width: 60px;
+                height: 30px;
+            }
+            .switch input {
+                opacity: 0;
+                width: 0;
+                height: 0;
+            }
+            .slider {
+                position: absolute;
+                cursor: pointer;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: rgba(255, 255, 255, 0.1);
+                transition: .4s;
+                border-radius: 30px;
+            }
+            .slider:before {
+                position: absolute;
+                content: "";
+                height: 22px;
+                width: 22px;
+                left: 4px;
+                bottom: 4px;
+                background-color: white;
+                transition: .4s;
+                border-radius: 50%;
+            }
+            input:checked + .slider {
+                background-color: #00D9FF;
+            }
+            input:checked + .slider:before {
+                transform: translateX(30px);
+            }
+            .badge-3d {
+                transform-style: preserve-3d;
+                perspective: 500px;
+            }
+            .card-3d {
+                transform-style: preserve-3d;
+                transition: transform 0.5s;
+            }
+            .card-3d:hover {
+                transform: translateY(-10px) rotateX(5deg);
+            }
+            .modal-backdrop {
+                backdrop-filter: blur(5px);
+                -webkit-backdrop-filter: blur(5px);
+            }
+        }
+        
+        @keyframes twinkle {
+            from { opacity: 0.3; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        
+        @keyframes confetti-fall {
+            0% { transform: translateY(-10px) rotate(0deg); opacity: 1; }
+            100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
+        }
+        
+        @keyframes particle-rise {
+            0% { transform: translateY(0) scale(1); opacity: 1; }
+            100% { transform: translateY(-100vh) scale(0.3); opacity: 0; }
+        }
+        
+        @keyframes float-in {
+            0% { transform: translateY(50px) scale(0.8); opacity: 0; }
+            70% { transform: translateY(-10px) scale(1.05); opacity: 1; }
+            100% { transform: translateY(0) scale(1); opacity: 1; }
+        }
+        
+        @keyframes shine {
+            0% { background-position: -200px; }
+            100% { background-position: 200px; }
+        }
+    </style>
+</head>
+<body class="font-inter bg-gradient-to-br from-space-purple via-space-dark to-space-blue min-h-screen text-white overflow-x-hidden relative">
+    <!-- 背景粒子和星星 -->
+    <div id="background-stars" class="fixed inset-0 pointer-events-none z-0"></div>
+    
+    <!-- 页面容器 -->
+    <div class="container mx-auto px-4 py-8 relative z-10 max-w-6xl">
+        <!-- 页面标题 -->
+        <header class="text-center mb-10 mt-4">
+            <h1 class="text-[clamp(2rem,5vw,3.5rem)] font-bold mb-2 bg-gradient-to-r from-electric-blue via-neon-pink to-diamond gradient-text animate-pulse-slow">
+                幸运抽奖
+            </h1>
+            <p class="text-[clamp(1rem,2vw,1.2rem)] text-gray-300 max-w-2xl mx-auto">
+                🎁 欢迎来到幸运抽奖，好运即将降临！✨ 输入参与者信息，让幸运女神眷顾每一个人
+            </p>
+        </header>
+        
+        <!-- 抽奖模式切换 -->
+        <div class="glass rounded-2xl p-1 mb-8 neo relative overflow-hidden">
+            <div class="flex rounded-xl overflow-hidden">
+                <button id="name-mode-btn" class="flex-1 py-4 px-6 text-lg font-medium transition-all duration-300 active-mode relative z-10">
+                    <i class="fa fa-paw mr-2 text-electric-blue"></i>名单抽奖
+                </button>
+                <button id="number-mode-btn" class="flex-1 py-4 px-6 text-lg font-medium transition-all duration-300 relative z-10">
+                    <i class="fa fa-calculator mr-2 text-electric-blue"></i>人数抽奖
+                </button>
+            </div>
+            <!-- 切换指示器 -->
+            <div id="mode-indicator" class="absolute top-1 left-1 h-[calc(100%-8px)] w-[calc(50%-2px)] bg-gradient-to-r from-electric-blue/20 to-deep-purple/20 rounded-xl transition-all duration-300"></div>
+        </div>
+        
+        <!-- 抽奖设置区域 -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <!-- 左侧：抽奖参数设置 -->
+            <div class="glass rounded-2xl p-6 neo h-full">
+                <h2 class="text-xl font-semibold mb-4 flex items-center">
+                    <i class="fa fa-sliders text-neon-pink mr-2"></i>抽奖设置
+                </h2>
+                
+                <!-- 名单抽奖模式 -->
+                <div id="name-mode-settings" class="space-y-5">
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-300">参与者名单（每行一个姓名）</label>
+                        <textarea id="participants" rows="6" class="w-full glass neo-inset rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-electric-blue transition-all resize-none" placeholder="请输入参与者姓名，每行一个..."></textarea>
+                        <p id="name-count" class="text-xs text-gray-400 mt-1">已输入: 0 人</p>
+                    </div>
+                </div>
+                
+                <!-- 人数抽奖模式 -->
+                <div id="number-mode-settings" class="space-y-5 hidden">
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-300">编号前缀</label>
+                        <input type="text" id="number-prefix" value="NO." class="w-full glass neo-inset rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-electric-blue transition-all">
+                    </div>
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-300">起始编号</label>
+                        <input type="number" id="start-number" value="1" min="1" class="w-full glass neo-inset rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-electric-blue transition-all">
+                    </div>
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-300">总人数</label>
+                        <input type="number" id="total-people" value="10" min="1" class="w-full glass neo-inset rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-electric-blue transition-all">
+                    </div>
+                </div>
+                
+                <div class="space-y-5 pt-2">
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-300">奖项等级</label>
+                        <select id="prize-level" class="w-full glass neo-inset rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-electric-blue transition-all">
+                            <option value="special" data-color="diamond">特等奖 🏆</option>
+                            <option value="first" data-color="gold">一等奖 🥇</option>
+                            <option value="second" data-color="silver">二等奖 🥈</option>
+                            <option value="third" data-color="bronze">三等奖 🥉</option>
+                            <option value="consolation" data-color="electric-blue">安慰奖 ✨</option>
+                        </select>
+                    </div>
+                    
+                    <div>
+                        <label class="block mb-2 text-sm font-medium text-gray-300">获奖人数</label>
+                        <input type="number" id="winner-count" value="1" min="1" max="10" class="w-full glass neo-inset rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-electric-blue transition-all">
+                    </div>
+                    
+                    <div class="flex items-center justify-between pt-2">
+                        <label class="text-sm font-medium text-gray-300">允许重复获奖</label>
+                        <label class="switch">
+                            <input type="checkbox" id="allow-duplicates">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 中间和右侧：抽奖区和结果区 -->
+            <div class="lg:col-span-2 space-y-6">
+                <!-- 抽奖区域 -->
+                <div class="glass rounded-2xl p-6 neo relative overflow-hidden">
+                    <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-electric-blue to-neon-pink"></div>
+                    <h2 class="text-xl font-semibold mb-6 flex items-center">
+                        <i class="fa fa-gift text-gold mr-2"></i>抽奖区
+                    </h2>
+                    
+                    <div id="drawing-area" class="py-12 px-4 rounded-xl glass neo-inset text-center relative overflow-hidden">
+                        <div id="drawing-animation" class="text-[clamp(1.5rem,5vw,3rem)] font-bold text-white text-shadow-glow h-20 flex items-center justify-center">
+                            等待开始...
+                        </div>
+                        
+                        <div class="mt-8 flex justify-center gap-4">
+                            <button id="start-draw" class="px-8 py-3 bg-gradient-to-r from-electric-blue to-deep-purple rounded-full font-medium text-white hover:opacity-90 transform hover:scale-105 transition-all duration-300 flex items-center shadow-lg shadow-electric-blue/20">
+                                <i class="fa fa-play mr-2"></i>开始抽奖
+                            </button>
+                            <button id="stop-draw" class="px-8 py-3 bg-gradient-to-r from-neon-pink to-error-red rounded-full font-medium text-white hover:opacity-90 transform hover:scale-105 transition-all duration-300 flex items-center shadow-lg shadow-neon-pink/20" disabled>
+                                <i class="fa fa-stop mr-2"></i>停止抽奖
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 结果展示区域 -->
+                <div class="glass rounded-2xl p-6 neo">
+                    <h2 class="text-xl font-semibold mb-4 flex items-center">
+                        <i class="fa fa-trophy text-gold mr-2"></i>获奖结果
+                    </h2>
+                    
+                    <div id="prize-history" class="space-y-4 mb-6 max-h-40 overflow-y-auto pr-2">
+                        <div class="text-gray-400 text-center py-8">
+                            暂无抽奖记录
+                        </div>
+                    </div>
+                    
+                    <div id="winners-container" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 min-h-[120px]">
+                        <div class="col-span-full text-gray-400 text-center py-12">
+                            抽奖结果将在这里展示
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 页脚 -->
+        <footer class="text-center py-6 text-gray-400 text-sm mt-12">
+            <p class="flex items-center justify-center gap-2 animate-pulse-slow">
+                <span>幸运抽奖 © 2025</span>
+                <i class="fa fa-heart text-neon-pink"></i>
+                <span>祝您好运</span>
+                <i class="fa fa-star text-gold"></i>
+            </p>
+        </footer>
+    </div>
+    
+    <!-- 庆祝弹窗 -->
+    <div id="celebration-modal" class="fixed inset-0 bg-black/70 modal-backdrop z-50 hidden items-center justify-center">
+        <div class="relative w-full max-w-3xl mx-4">
+            <!-- 关闭按钮 -->
+            <button id="close-celebration" class="absolute -top-12 right-0 text-white bg-black/30 hover:bg-black/50 w-10 h-10 rounded-full flex items-center justify-center transition-all z-10">
+                <i class="fa fa-times"></i>
+            </button>
+            
+            <!-- 庆祝内容 -->
+            <div class="glass rounded-3xl p-8 neo relative overflow-hidden">
+                <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-gold via-diamond to-neon-pink"></div>
+                
+                <h2 class="text-[clamp(1.5rem,3vw,2.5rem)] font-bold text-center mb-2 gradient-text bg-gradient-to-r from-gold to-diamond">
+                    🎉 恭喜幸运儿！🎊
+                </h2>
+                <p class="text-center text-gray-300 mb-8">✨ 好运降临的美妙时刻 ✨</p>
+                
+                <div id="celebration-winners" class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+                    <!-- 获奖者卡片将在这里动态生成 -->
+                </div>
+                
+                <div class="text-center">
+                    <p class="text-gray-300 mb-6">🌟 每一份幸运都值得庆祝！</p>
+                    <button id="save-results" class="px-6 py-3 bg-gradient-to-r from-success-green to-electric-blue rounded-full font-medium text-white hover:opacity-90 transform hover:scale-105 transition-all duration-300">
+                        <i class="fa fa-check mr-2"></i>确认结果
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 通知提示 -->
+    <div id="toast" class="fixed bottom-6 right-6 px-6 py-3 rounded-lg glass neo transform translate-y-20 opacity-0 transition-all duration-300 z-50 flex items-center gap-2"></div>
+
+    <script>
+        // 全局变量
+        let isDrawing = false;
+        let drawingInterval;
+        let allParticipants = [];
+        let previousWinners = [];
+        let currentPrizeLevel = 'special';
+        let starCount = 100; // 背景星星数量
+        
+        // DOM 元素
+        const nameModeBtn = document.getElementById('name-mode-btn');
+        const numberModeBtn = document.getElementById('number-mode-btn');
+        const modeIndicator = document.getElementById('mode-indicator');
+        const nameModeSettings = document.getElementById('name-mode-settings');
+        const numberModeSettings = document.getElementById('number-mode-settings');
+        const participantsTextarea = document.getElementById('participants');
+        const nameCountEl = document.getElementById('name-count');
+        const numberPrefix = document.getElementById('number-prefix');
+        const startNumber = document.getElementById('start-number');
+        const totalPeople = document.getElementById('total-people');
+        const prizeLevel = document.getElementById('prize-level');
+        const winnerCount = document.getElementById('winner-count');
+        const allowDuplicates = document.getElementById('allow-duplicates');
+        const startDrawBtn = document.getElementById('start-draw');
+        const stopDrawBtn = document.getElementById('stop-draw');
+        const drawingAnimation = document.getElementById('drawing-animation');
+        const winnersContainer = document.getElementById('winners-container');
+        const prizeHistory = document.getElementById('prize-history');
+        const celebrationModal = document.getElementById('celebration-modal');
+        const celebrationWinners = document.getElementById('celebration-winners');
+        const closeCelebration = document.getElementById('close-celebration');
+        const saveResults = document.getElementById('save-results');
+        const toast = document.getElementById('toast');
+        const backgroundStars = document.getElementById('background-stars');
+        
+        // 初始化背景星星
+        function initStars() {
+            for (let i = 0; i < starCount; i++) {
+                const star = document.createElement('div');
+                star.classList.add('star');
+                
+                // 随机大小和位置
+                const size = Math.random() * 3 + 1;
+                const x = Math.random() * 100;
+                const y = Math.random() * 100;
+                const delay = Math.random() * 2;
+                const opacity = Math.random() * 0.8 + 0.2;
+                
+                star.style.width = `${size}px`;
+                star.style.height = `${size}px`;
+                star.style.left = `${x}%`;
+                star.style.top = `${y}%`;
+                star.style.animationDelay = `${delay}s`;
+                star.style.opacity = opacity;
+                
+                // 随机颜色，模拟不同恒星颜色
+                const colors = ['#ffffff', '#f0f0f0', '#e0e0ff', '#fff0f0'];
+                star.style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+                
+                backgroundStars.appendChild(star);
+            }
+        }
+        
+        // 切换抽奖模式
+        function switchMode(mode) {
+            if (mode === 'name') {
+                modeIndicator.style.transform = 'translateX(0)';
+                nameModeSettings.classList.remove('hidden');
+                numberModeSettings.classList.add('hidden');
+                nameModeBtn.classList.add('text-electric-blue', 'font-semibold');
+                numberModeBtn.classList.remove('text-electric-blue', 'font-semibold');
+            } else {
+                modeIndicator.style.transform = 'translateX(100%)';
+                nameModeSettings.classList.add('hidden');
+                numberModeSettings.classList.remove('hidden');
+                nameModeBtn.classList.remove('text-electric-blue', 'font-semibold');
+                numberModeBtn.classList.add('text-electric-blue', 'font-semibold');
+            }
+        }
+        
+        // 更新参与者数量显示
+        function updateNameCount() {
+            const names = participantsTextarea.value
+                .split('\n')
+                .map(name => name.trim())
+                .filter(name => name.length > 0);
+            nameCountEl.textContent = `已输入: ${names.length} 人`;
+        }
+        
+        // 生成参与者列表
+        function generateParticipants() {
+            const mode = nameModeBtn.classList.contains('text-electric-blue') ? 'name' : 'number';
+            
+            if (mode === 'name') {
+                // 名单模式
+                return participantsTextarea.value
+                    .split('\n')
+                    .map(name => name.trim())
+                    .filter(name => name.length > 0);
+            } else {
+                // 人数模式
+                const prefix = numberPrefix.value;
+                const start = parseInt(startNumber.value);
+                const total = parseInt(totalPeople.value);
+                const participants = [];
+                
+                for (let i = 0; i < total; i++) {
+                    participants.push(`${prefix}${start + i}`);
+                }
+                
+                return participants;
+            }
+        }
+        
+        // 检查是否可以开始抽奖
+        function canStartDraw() {
+            const participants = generateParticipants();
+            const count = parseInt(winnerCount.value);
+            
+            if (participants.length === 0) {
+                showToast('请先添加参与者', 'error');
+                return false;
+            }
+            
+            if (!allowDuplicates.checked && participants.length - previousWinners.length < count) {
+                showToast('剩余可抽奖人数不足', 'warning');
+                return false;
+            }
+            
+            if (count < 1) {
+                showToast('请设置有效的获奖人数', 'error');
+                return false;
+            }
+            
+            return true;
+        }
+        
+        // 开始抽奖
+        function startDrawing() {
+            if (!canStartDraw()) return;
+            
+            isDrawing = true;
+            startDrawBtn.disabled = true;
+            stopDrawBtn.disabled = false;
+            startDrawBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            stopDrawBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            
+            // 更新当前奖项等级
+            currentPrizeLevel = prizeLevel.value;
+            
+            // 获取符合条件的参与者（排除已中奖且不允许重复的）
+            let eligibleParticipants = generateParticipants();
+            if (!allowDuplicates.checked) {
+                eligibleParticipants = eligibleParticipants.filter(
+                    participant => !previousWinners.includes(participant)
+                );
+            }
+            
+            // 抽奖动画
+            drawingAnimation.textContent = '🎲 命运的齿轮正在转动...';
+            drawingAnimation.classList.add('animate-pulse');
+            
+            let lastIndex = -1;
+            drawingInterval = setInterval(() => {
+                if (!isDrawing) return;
+                
+                // 随机选择参与者
+                let randomIndex;
+                do {
+                    randomIndex = Math.floor(Math.random() * eligibleParticipants.length);
+                } while (eligibleParticipants.length > 1 && randomIndex === lastIndex);
+                
+                lastIndex = randomIndex;
+                drawingAnimation.textContent = eligibleParticipants[randomIndex];
+            }, 80);
+        }
+        
+        // 停止抽奖
+        function stopDrawing() {
+            if (!isDrawing) return;
+            
+            clearInterval(drawingInterval);
+            isDrawing = false;
+            startDrawBtn.disabled = false;
+            stopDrawBtn.disabled = true;
+            startDrawBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+            stopDrawBtn.classList.add('opacity-50', 'cursor-not-allowed');
+            drawingAnimation.classList.remove('animate-pulse');
+            
+            // 获取获奖人数和符合条件的参与者
+            const count = parseInt(winnerCount.value);
+            let eligibleParticipants = generateParticipants();
+            if (!allowDuplicates.checked) {
+                eligibleParticipants = eligibleParticipants.filter(
+                    participant => !previousWinners.includes(participant)
+                );
+            }
+            
+            // 随机选择获奖者
+            const winners = [];
+            const tempParticipants = [...eligibleParticipants];
+            
+            for (let i = 0; i < count && tempParticipants.length > 0; i++) {
+                const randomIndex = Math.floor(Math.random() * tempParticipants.length);
+                const winner = tempParticipants.splice(randomIndex, 1)[0];
+                winners.push(winner);
+                previousWinners.push(winner);
+            }
+            
+            // 抽奖区显示最终结果
+            if (winners.length === 1) {
+                // 单个获奖者时直接显示
+                drawingAnimation.textContent = winners[0];
+                // 添加弹跳动画强调结果
+                drawingAnimation.classList.add('animate-bounce-in');
+                setTimeout(() => {
+                    drawingAnimation.classList.remove('animate-bounce-in');
+                }, 600);
+            } else if (winners.length > 1) {
+                // 多个获奖者时显示提示信息
+                drawingAnimation.textContent = `恭喜 ${winners.length} 位获奖者！`;
+            }
+            
+            // 显示获奖者
+            displayWinners(winners);
+            
+            // 延迟显示庆祝动画
+            setTimeout(() => {
+                showCelebration(winners);
+            }, 500);
+            
+            // 添加到历史记录
+            addToHistory(winners);
+            
+            showToast(`恭喜 ${winners.length} 位幸运儿获奖！`, 'success');
+        }
+        
+        // 显示获奖者
+        function displayWinners(winners) {
+            winnersContainer.innerHTML = '';
+            
+            if (winners.length === 0) {
+                winnersContainer.innerHTML = `
+                    <div class="col-span-full text-gray-400 text-center py-12">
+                        抽奖结果将在这里展示
+                    </div>
+                `;
+                return;
+            }
+            
+            winners.forEach((winner, index) => {
+                const prizeColor = prizeLevel.options[prizeLevel.selectedIndex].dataset.color;
+                const prizeClass = `prize-glow-${prizeColor}`;
+                const medal = index === 0 ? '🥇' : index === 1 ? '🥈' : index === 2 ? '🥉' : '🏅';
+                
+                const winnerEl = document.createElement('div');
+                winnerEl.className = `glass rounded-xl p-4 text-center neo ${prizeClass} transition-all duration-500 transform hover:scale-105`;
+                winnerEl.innerHTML = `
+                    <div class="text-2xl mb-2">${medal}</div>
+                    <div class="font-bold text-lg">${winner}</div>
+                    <div class="text-xs text-gray-400 mt-1">${getPrizeName()}</div>
+                `;
+                
+                // 添加延迟入场效果
+                winnerEl.style.animation = `float-in 0.5s ease-out ${index * 0.1}s forwards`;
+                winnerEl.style.opacity = '0';
+                
+                winnersContainer.appendChild(winnerEl);
+            });
+        }
+        
+        // 显示庆祝弹窗
+        function showCelebration(winners) {
+            celebrationWinners.innerHTML = '';
+            
+            winners.forEach((winner, index) => {
+                const prizeColor = prizeLevel.options[prizeLevel.selectedIndex].dataset.color;
+                const prizeClass = `prize-glow-${prizeColor}`;
+                let badge, rankClass;
+                
+                // 根据排名设置不同样式
+                if (index === 0) {
+                    badge = '👑';
+                    rankClass = 'text-gold';
+                } else if (index === 1) {
+                    badge = '🥈';
+                    rankClass = 'text-silver';
+                } else if (index === 2) {
+                    badge = '🥉';
+                    rankClass = 'text-bronze';
+                } else {
+                    badge = '🏅';
+                    rankClass = `text-${prizeColor}`;
+                }
+                
+                const winnerCard = document.createElement('div');
+                winnerCard.className = `glass rounded-xl p-6 neo card-3d ${prizeClass} flex flex-col items-center justify-center h-full`;
+                winnerCard.innerHTML = `
+                    <div class="w-16 h-16 rounded-full bg-gradient-to-br from-${prizeColor}/20 to-deep-purple/20 flex items-center justify-center mb-4 badge-3d">
+                        <span class="text-2xl">${badge}</span>
+                    </div>
+                    <h3 class="text-xl font-bold mb-1 gradient-text bg-gradient-to-r from-white to-${prizeColor}">${winner}</h3>
+                    <p class="text-sm text-gray-400 mb-3">第 ${index + 1} 名</p>
+                    <div class="px-3 py-1 rounded-full text-xs ${rankClass} bg-${prizeColor}/10">
+                        ${getPrizeName()}
+                    </div>
+                `;
+                
+                // 添加错落入场动画
+                winnerCard.style.animation = `float-in 0.6s ease-out ${index * 0.2}s forwards`;
+                winnerCard.style.opacity = '0';
+                
+                celebrationWinners.appendChild(winnerCard);
+            });
+            
+            // 显示弹窗并触发庆祝效果
+            celebrationModal.style.display = 'flex';
+            createConfetti();
+            createParticles();
+            
+            // 移动端震动
+            if ('vibrate' in navigator) {
+                navigator.vibrate([200, 100, 200]);
+            }
+        }
+        
+        // 添加到历史记录
+        function addToHistory(winners) {
+            const prizeName = getPrizeName();
+            const date = new Date();
+            const timeStr = `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+            
+            const historyItem = document.createElement('div');
+            historyItem.className = 'glass rounded-lg p-3 neo-inset';
+            historyItem.innerHTML = `
+                <div class="flex justify-between items-center mb-2">
+                    <span class="font-medium text-sm">${prizeName}</span>
+                    <span class="text-xs text-gray-400">${timeStr}</span>
+                </div>
+                <div class="text-sm">
+                    ${winners.join('、')}
+                </div>
+            `;
+            
+            // 如果是第一条记录，清除提示文本
+            if (prizeHistory.querySelector('.text-gray-400.text-center')) {
+                prizeHistory.innerHTML = '';
+            }
+            
+            prizeHistory.prepend(historyItem);
+        }
+        
+        // 获取奖项名称
+        function getPrizeName() {
+            const options = prizeLevel.options;
+            for (let i = 0; i < options.length; i++) {
+                if (options[i].value === currentPrizeLevel) {
+                    return options[i].text.split(' ')[0];
+                }
+            }
+            return '奖项';
+        }
+        
+        // 创建彩带效果
+        function createConfetti() {
+            const colors = ['#00D9FF', '#6C5CE7', '#FF10F0', '#B9F2FF', '#FFD700', '#C0C0C0', '#CD7F32'];
+            const confettiCount = 150;
+            
+            for (let i = 0; i < confettiCount; i++) {
+                const confetti = document.createElement('div');
+                confetti.classList.add('confetti');
+                
+                // 随机属性
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                const size = Math.random() * 8 + 4;
+                const x = Math.random() * 100;
+                const rotation = Math.random() * 360;
+                const duration = Math.random() * 5 + 3;
+                const delay = Math.random() * 2;
+                
+                confetti.style.backgroundColor = color;
+                confetti.style.width = `${size}px`;
+                confetti.style.height = `${size}px`;
+                confetti.style.left = `${x}%`;
+                confetti.style.top = '-10px';
+                confetti.style.transform = `rotate(${rotation}deg)`;
+                confetti.style.animation = `confetti-fall ${duration}s linear ${delay}s forwards`;
+                
+                celebrationModal.appendChild(confetti);
+                
+                // 动画结束后移除
+                setTimeout(() => {
+                    confetti.remove();
+                }, (duration + delay) * 1000);
+            }
+        }
+        
+        // 创建粒子效果
+        function createParticles() {
+            const particleCount = 80;
+            
+            for (let i = 0; i < particleCount; i++) {
+                const particle = document.createElement('div');
+                particle.classList.add('particle');
+                
+                // 随机属性
+                const hue = Math.random() * 360;
+                const size = Math.random() * 6 + 2;
+                const x = 50; // 从中心开始
+                const y = 50;
+                const radius = Math.random() * 150 + 50;
+                const angle = Math.random() * Math.PI * 2;
+                const finalX = x + radius * Math.cos(angle);
+                const finalY = y + radius * Math.sin(angle);
+                const duration = Math.random() * 3 + 2;
+                const delay = Math.random() * 1;
+                
+                particle.style.backgroundColor = `hsl(${hue}, 80%, 60%)`;
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                particle.style.left = `${x}%`;
+                particle.style.top = `${y}%`;
+                particle.style.transform = 'translate(-50%, -50%)';
+                particle.style.opacity = '0';
+                
+                // 添加到DOM
+                celebrationModal.appendChild(particle);
+                
+                // 触发动画
+                setTimeout(() => {
+                    particle.style.transition = `all ${duration}s ease-out`;
+                    particle.style.opacity = '1';
+                    particle.style.left = `${finalX}%`;
+                    particle.style.top = `${finalY}%`;
+                    
+                    // 动画结束后移除
+                    setTimeout(() => {
+                        particle.remove();
+                    }, duration * 1000);
+                }, delay * 1000);
+            }
+        }
+        
+        // 显示提示信息
+        function showToast(message, type = 'info') {
+            // 设置样式
+            toast.textContent = message;
+            toast.className = 'fixed bottom-6 right-6 px-6 py-3 rounded-lg glass neo transform translate-y-0 opacity-100 transition-all duration-300 z-50 flex items-center gap-2';
+            
+            // 根据类型设置图标和颜色
+            let icon, colorClass;
+            switch (type) {
+                case 'success':
+                    icon = 'fa-check-circle';
+                    colorClass = 'text-success-green';
+                    break;
+                case 'error':
+                    icon = 'fa-exclamation-circle';
+                    colorClass = 'text-error-red';
+                    break;
+                case 'warning':
+                    icon = 'fa-exclamation-triangle';
+                    colorClass = 'text-warning-orange';
+                    break;
+                default:
+                    icon = 'fa-info-circle';
+                    colorClass = 'text-electric-blue';
+            }
+            
+            toast.innerHTML = `<i class="fa ${icon} ${colorClass}"></i> ${message}`;
+            
+            // 自动隐藏
+            setTimeout(() => {
+                toast.classList.remove('translate-y-0', 'opacity-100');
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3000);
+        }
+        
+        // 事件监听
+        nameModeBtn.addEventListener('click', () => switchMode('name'));
+        numberModeBtn.addEventListener('click', () => switchMode('number'));
+        participantsTextarea.addEventListener('input', updateNameCount);
+        startDrawBtn.addEventListener('click', startDrawing);
+        stopDrawBtn.addEventListener('click', stopDrawing);
+        closeCelebration.addEventListener('click', () => {
+            celebrationModal.style.display = 'none';
+            // 清除所有粒子和彩带
+            document.querySelectorAll('.confetti, .particle').forEach(el => el.remove());
+        });
+        saveResults.addEventListener('click', () => {
+            celebrationModal.style.display = 'none';
+            document.querySelectorAll('.confetti, .particle').forEach(el => el.remove());
+            showToast('结果已保存', 'success');
+        });
+        
+        // 初始化
+        window.addEventListener('DOMContentLoaded', () => {
+            initStars();
+            switchMode('name');
+            updateNameCount();
+        });
+    </script>
+</body>
+</html>
