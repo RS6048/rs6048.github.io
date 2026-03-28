@@ -9,7 +9,7 @@
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            user-select: none; /* 避免拖拽时选中文本 */
+            user-select: none;
         }
         body, html {
             width: 100%;
@@ -59,12 +59,13 @@
         ];
 
         // ---------- P型行星 (绕双星质心) Mars ----------
+        // 调整半长轴从28.5增加到32.0 AU，避免与伴星Crimsun轨道（35 AU）视觉相交
         const mars = {
             name: 'Mars',
             color: '#e3756b',
             size: 9,
-            a: 28.5,               // 半长轴 28.5 AU
-            period: 32.0,
+            a: 32.0,               // 增大轨道半径，远离伴星
+            period: 38.0,          // 周期相应微调 (原32→38，保持视觉舒适)
             angle: 1.9
         };
 
@@ -95,6 +96,494 @@
         // ========== 画布与相机系统 ==========
         let canvas = document.getElementById('cosmicCanvas');
         let ctx = canvas.getContext('2d');
+        let width, height;
+        let baseScale = 6.5;        // 基础像素/AU (根据窗口计算)
+        let centerX, centerY;        // 屏幕中心
+
+        // 相机参数 (世界坐标, 单位AU)
+        let camera = { x: 0, y: 0, scale: 1.0 };   // 相机中心世界坐标，scale 为额外缩放倍数
+        const MAX_ORBIT_AU = 70.0;   // 最远天体轨道 (Pluto-Charon 质心 62.5 + 余量)
+
+        // 交互状态
+        let isDragging = false;
+        let dragStart = { x: 0, y: 0 };
+        let dragStartCamera = { x: 0, y: 0 };
+        let touchCache = [];
+
+        // 计算基础缩放比例，使最大轨道占屏幕85%
+        function updateBaseScale() {
+            const maxPx = Math.min(width, height) * 0.85;
+            baseScale = maxPx / MAX_ORBIT_AU;
+        }
+
+        // 世界坐标 -> 屏幕坐标 (AU -> px)
+        function worldToScreen(worldX, worldY) {
+            const px = centerX + (worldX - camera.x) * baseScale * camera.scale;
+            const py = centerY - (worldY - camera.y) * baseScale * camera.scale;
+            return { x: px, y: py };
+        }
+
+        // 屏幕坐标 -> 世界坐标 (px -> AU)
+        function screenToWorld(screenX, screenY) {
+            const worldX = camera.x + (screenX - centerX) / (baseScale * camera.scale);
+            const worldY = camera.y - (screenY - centerY) / (baseScale * camera.scale);
+            return { x: worldX, y: worldY };
+        }
+
+        // 限制缩放范围：最小0.3倍，最大无上限（仅保留最小值限制）
+        function clampScale(scale) {
+            return Math.max(0.3, scale);   // 无最大限制
+        }
+
+        // 滚轮缩放 (以鼠标位置为中心)
+        function handleWheel(e) {
+            e.preventDefault();
+            const delta = -e.deltaY * 0.005;
+            if (delta === 0) return;
+            const oldScale = camera.scale;
+            let newScale = clampScale(oldScale * (1 + delta));
+            if (newScale === oldScale) return;
+
+            const rect = canvas.getBoundingClientRect();
+            const mouseX = (e.clientX - rect.left) * (width / rect.width);
+            const mouseY = (e.clientY - rect.top) * (height / rect.height);
+            const worldAtMouse = screenToWorld(mouseX, mouseY);
+
+            camera.scale = newScale;
+            const newScreen = worldToScreen(worldAtMouse.x, worldAtMouse.y);
+            camera.x += (mouseX - newScreen.x) / (baseScale * camera.scale);
+            camera.y -= (mouseY - newScreen.y) / (baseScale * camera.scale);
+        }
+
+        // 拖拽平移
+        function startDrag(screenX, screenY) {
+            isDragging = true;
+            dragStart.x = screenX;
+            dragStart.y = screenY;
+            dragStartCamera.x = camera.x;
+            dragStartCamera.y = camera.y;
+            canvas.classList.add('dragging');
+        }
+
+        function onDrag(screenX, screenY) {
+            if (!isDragging) return;
+            const dx = screenX - dragStart.x;
+            const dy = screenY - dragStart.y;
+            const worldDx = -dx / (baseScale * camera.scale);
+            const worldDy = dy / (baseScale * camera.scale);
+            camera.x = dragStartCamera.x + worldDx;
+            camera.y = dragStartCamera.y + worldDy;
+        }
+
+        function endDrag() {
+            isDragging = false;
+            canvas.classList.remove('dragging');
+        }
+
+        // 触摸双指缩放逻辑
+        function getTouchCenterAndDist(touches) {
+            if (touches.length < 2) return null;
+            const t1 = touches[0], t2 = touches[1];
+            const rect = canvas.getBoundingClientRect();
+            const x1 = (t1.clientX - rect.left) * (width / rect.width);
+            const y1 = (t1.clientY - rect.top) * (height / rect.height);
+            const x2 = (t2.clientX - rect.left) * (width / rect.width);
+            const y2 = (t2.clientY - rect.top) * (height / rect.height);
+            const center = { x: (x1 + x2) / 2, y: (y1 + y2) / 2 };
+            const dist = Math.hypot(x2 - x1, y2 - y1);
+            return { center, dist };
+        }
+
+        function handleTouchStart(e) {
+            e.preventDefault();
+            const touches = e.touches;
+            if (touches.length === 1) {
+                const rect = canvas.getBoundingClientRect();
+                const screenX = (touches[0].clientX - rect.left) * (width / rect.width);
+                const screenY = (touches[0].clientY - rect.top) * (height / rect.height);
+                startDrag(screenX, screenY);
+            } else if (touches.length === 2) {
+                const info = getTouchCenterAndDist(touches);
+                if (info) {
+                    touchCache = {
+                        type: 'zoom',
+                        startScale: camera.scale,
+                        startCenterWorld: screenToWorld(info.center.x, info.center.y),
+                        startDist: info.dist
+                    };
+                }
+                if (isDragging) endDrag();
+            }
+        }
+
+        function handleTouchMove(e) {
+            e.preventDefault();
+            const touches = e.touches;
+            if (touches.length === 1 && isDragging) {
+                const rect = canvas.getBoundingClientRect();
+                const screenX = (touches[0].clientX - rect.left) * (width / rect.width);
+                const screenY = (touches[0].clientY - rect.top) * (height / rect.height);
+                onDrag(screenX, screenY);
+            } else if (touches.length === 2 && touchCache && touchCache.type === 'zoom') {
+                const info = getTouchCenterAndDist(touches);
+                if (!info) return;
+                const newDist = info.dist;
+                if (touchCache.startDist === 0) return;
+                const ratio = newDist / touchCache.startDist;
+                let newScale = clampScale(touchCache.startScale * ratio);
+                if (newScale === camera.scale) return;
+                const currentCenterWorld = screenToWorld(info.center.x, info.center.y);
+                camera.scale = newScale;
+                const newScreenCenter = worldToScreen(currentCenterWorld.x, currentCenterWorld.y);
+                const dx = info.center.x - newScreenCenter.x;
+                const dy = info.center.y - newScreenCenter.y;
+                camera.x += dx / (baseScale * camera.scale);
+                camera.y -= dy / (baseScale * camera.scale);
+                touchCache.startScale = camera.scale;
+                touchCache.startCenterWorld = currentCenterWorld;
+                touchCache.startDist = newDist;
+            }
+        }
+
+        function handleTouchEnd(e) {
+            e.preventDefault();
+            if (e.touches.length === 0) {
+                endDrag();
+                touchCache = null;
+            } else if (e.touches.length === 1) {
+                if (touchCache) touchCache = null;
+                const rect = canvas.getBoundingClientRect();
+                const screenX = (e.touches[0].clientX - rect.left) * (width / rect.width);
+                const screenY = (e.touches[0].clientY - rect.top) * (height / rect.height);
+                startDrag(screenX, screenY);
+            } else {
+                if (e.touches.length === 2 && touchCache) {
+                    const info = getTouchCenterAndDist(e.touches);
+                    if (info) {
+                        touchCache.startDist = info.dist;
+                        touchCache.startScale = camera.scale;
+                        touchCache.startCenterWorld = screenToWorld(info.center.x, info.center.y);
+                    }
+                }
+            }
+        }
+
+        function resetCamera() {
+            camera = { x: 0, y: 0, scale: 1.0 };
+        }
+
+        // ========== 天体动画相关 ==========
+        let time = 0;
+        let lastTimestamp = null;
+
+        function computeBarycenter(compX, compY) {
+            const m1 = 1.15, m2 = 0.28;
+            const total = m1 + m2;
+            const bx = (m1 * 0 + m2 * compX) / total;
+            const by = (m1 * 0 + m2 * compY) / total;
+            return { x: bx, y: by };
+        }
+
+        // 星空背景粒子
+        let starPositions = [];
+        function initStarfield() {
+            starPositions = [];
+            const starCount = Math.min(1400, Math.floor(width * height / 1100));
+            for (let i = 0; i < starCount; i++) {
+                starPositions.push({
+                    x: Math.random() * width,
+                    y: Math.random() * height,
+                    radius: 0.8 + Math.random() * 2.2,
+                    alpha: 0.3 + Math.random() * 0.7
+                });
+            }
+        }
+        function drawStarfield() {
+            for (let s of starPositions) {
+                ctx.beginPath();
+                ctx.fillStyle = `rgba(255, 240, 200, ${s.alpha * 0.8})`;
+                ctx.arc(s.x, s.y, s.radius, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // 小行星带粒子
+        let asteroidAngles = [];
+        function initAsteroidAngles() {
+            asteroidAngles = [];
+            for (let i = 0; i < asteroidBelt.particleCount; i++) {
+                const r = asteroidBelt.innerRadius + Math.random() * (asteroidBelt.outerRadius - asteroidBelt.innerRadius);
+                const angle = Math.random() * 2 * Math.PI;
+                asteroidAngles.push({ r, angle });
+            }
+        }
+        function drawAsteroidBelt() {
+            const centerX_au = 0;
+            const centerY_au = 0;
+            for (let a of asteroidAngles) {
+                const rot = time * 0.8;
+                const angle = a.angle + rot;
+                const x_au = centerX_au + a.r * Math.cos(angle);
+                const y_au = centerY_au + a.r * Math.sin(angle);
+                const { x: px, y: py } = worldToScreen(x_au, y_au);
+                ctx.beginPath();
+                ctx.fillStyle = `rgba(180, 160, 130, ${0.5 + Math.sin(angle * 10) * 0.1})`;
+                ctx.arc(px, py, 1.2, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+        }
+
+        // 绘制文本标签 (带有半透背景)
+        function drawLabel(text, screenX, screenY, color = '#ffffff', offsetX = 12, offsetY = -12) {
+            const x = screenX + offsetX;
+            const y = screenY + offsetY;
+            ctx.font = 'bold 14px "Segoe UI", "Helvetica Neue", sans-serif';
+            ctx.shadowBlur = 0;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            // 半透背景
+            const metrics = ctx.measureText(text);
+            const width = metrics.width;
+            ctx.fillStyle = 'rgba(0,0,0,0.5)';
+            ctx.fillRect(x - 2, y - 10, width + 4, 18);
+            ctx.fillStyle = color;
+            ctx.shadowBlur = 4;
+            ctx.shadowColor = 'black';
+            ctx.fillText(text, x, y);
+            ctx.shadowBlur = 0;
+        }
+
+        // 更新所有天体位置并绘制
+        function updateAndDraw(dt) {
+            time += dt * SPEED_FIXED * BASE_FACTOR;
+
+            // 1. 伴星 Crimsun
+            const compAngle = companion.angle + (time / companion.period) * 2 * Math.PI;
+            const compX = companion.a * Math.cos(compAngle);
+            const compY = companion.a * Math.sin(compAngle);
+
+            // 2. 双星质心
+            const bary = computeBarycenter(compX, compY);
+
+            // 3. 内行星 (绕主星)
+            const innerPos = innerPlanets.map(p => {
+                const angle = p.angle + (time / p.period) * 2 * Math.PI;
+                return {
+                    ...p,
+                    x: p.a * Math.cos(angle),
+                    y: p.a * Math.sin(angle)
+                };
+            });
+
+            // 4. Mars (P型轨道)
+            const marsAngle = mars.angle + (time / mars.period) * 2 * Math.PI;
+            const marsX = bary.x + mars.a * Math.cos(marsAngle);
+            const marsY = bary.y + mars.a * Math.sin(marsAngle);
+
+            // 5. 冥王星-卡戎系统
+            const dwarfBaryAngle = plutoCharon.baryAngle + (time / plutoCharon.baryPeriod) * 2 * Math.PI;
+            const dwarfBaryX = bary.x + plutoCharon.baryA * Math.cos(dwarfBaryAngle);
+            const dwarfBaryY = bary.y + plutoCharon.baryA * Math.sin(dwarfBaryAngle);
+
+            const innerAngle = plutoCharon.innerAngle + (time / plutoCharon.innerPeriod) * 2 * Math.PI;
+            const dist1 = plutoCharon.sep * (1 - plutoCharon.massRatio);
+            const dist2 = plutoCharon.sep * plutoCharon.massRatio;
+            const offsetX1 = dist1 * Math.cos(innerAngle);
+            const offsetY1 = dist1 * Math.sin(innerAngle);
+            const offsetX2 = -dist2 * Math.cos(innerAngle);
+            const offsetY2 = -dist2 * Math.sin(innerAngle);
+
+            const pluto = { color: plutoCharon.color1, size: plutoCharon.size1, x: dwarfBaryX + offsetX1, y: dwarfBaryY + offsetY1 };
+            const charon = { color: plutoCharon.color2, size: plutoCharon.size2, x: dwarfBaryX + offsetX2, y: dwarfBaryY + offsetY2 };
+
+            drawScene(compX, compY, bary, innerPos, marsX, marsY, pluto, charon);
+        }
+
+        // 绘制主场景 (包含所有星球英文名)
+        function drawScene(compX, compY, bary, innerPos, marsX, marsY, pluto, charon) {
+            ctx.clearRect(0, 0, width, height);
+            drawStarfield();
+
+            // 辅助轨道 (世界坐标下半径10,20,...,70 AU)
+            ctx.save();
+            ctx.strokeStyle = '#2a3a5560';
+            ctx.lineWidth = 0.6;
+            ctx.setLineDash([3, 5]);
+            for (let r = 10; r <= 70; r += 10) {
+                const steps = 120;
+                ctx.beginPath();
+                for (let i = 0; i <= steps; i++) {
+                    const angle = (i / steps) * 2 * Math.PI;
+                    const x_au = r * Math.cos(angle);
+                    const y_au = r * Math.sin(angle);
+                    const { x: px, y: py } = worldToScreen(x_au, y_au);
+                    if (i === 0) ctx.moveTo(px, py);
+                    else ctx.lineTo(px, py);
+                }
+                ctx.stroke();
+            }
+            ctx.setLineDash([]);
+            // 双星连线
+            const pSun = worldToScreen(0, 0);
+            const pComp = worldToScreen(compX, compY);
+            ctx.beginPath();
+            ctx.strokeStyle = '#6a8bbb70';
+            ctx.lineWidth = 0.8;
+            ctx.moveTo(pSun.x, pSun.y);
+            ctx.lineTo(pComp.x, pComp.y);
+            ctx.stroke();
+
+            // 质心标记
+            const pBary = worldToScreen(bary.x, bary.y);
+            ctx.beginPath();
+            ctx.strokeStyle = '#bcd0ff90';
+            ctx.lineWidth = 1.2;
+            ctx.moveTo(pBary.x - 6, pBary.y);
+            ctx.lineTo(pBary.x + 6, pBary.y);
+            ctx.moveTo(pBary.x, pBary.y - 6);
+            ctx.lineTo(pBary.x, pBary.y + 6);
+            ctx.stroke();
+            ctx.restore();
+
+            // 小行星带
+            drawAsteroidBelt();
+
+            // 绘制天体 (带光晕)
+            // 主星 Sun
+            ctx.shadowColor = '#ffd966';
+            ctx.shadowBlur = 28;
+            const sunPos = worldToScreen(0, 0);
+            ctx.beginPath();
+            ctx.arc(sunPos.x, sunPos.y, primaryStar.size, 0, 2 * Math.PI);
+            ctx.fillStyle = primaryStar.color;
+            ctx.fill();
+            drawLabel('Sun', sunPos.x, sunPos.y, '#ffdd99', 15, -18);
+
+            // 伴星 Crimsun
+            ctx.shadowColor = '#c45a4a';
+            ctx.shadowBlur = 20;
+            const compPos = worldToScreen(compX, compY);
+            ctx.beginPath();
+            ctx.arc(compPos.x, compPos.y, companion.size, 0, 2 * Math.PI);
+            ctx.fillStyle = companion.color;
+            ctx.fill();
+            drawLabel('Crimsun', compPos.x, compPos.y, '#ffaa88', 15, -18);
+
+            // 内行星 + 标签
+            innerPos.forEach(p => {
+                ctx.shadowColor = p.color;
+                ctx.shadowBlur = 12;
+                const pos = worldToScreen(p.x, p.y);
+                ctx.beginPath();
+                ctx.arc(pos.x, pos.y, p.size, 0, 2 * Math.PI);
+                ctx.fillStyle = p.color;
+                ctx.fill();
+                drawLabel(p.name, pos.x, pos.y, '#ffffff', 12, -14);
+            });
+
+            // Mars
+            ctx.shadowColor = mars.color;
+            ctx.shadowBlur = 14;
+            const marsPos = worldToScreen(marsX, marsY);
+            ctx.beginPath();
+            ctx.arc(marsPos.x, marsPos.y, mars.size, 0, 2 * Math.PI);
+            ctx.fillStyle = mars.color;
+            ctx.fill();
+            drawLabel('Mars', marsPos.x, marsPos.y, '#ffaa99', 12, -16);
+
+            // Pluto & Charon
+            ctx.shadowColor = pluto.color;
+            ctx.shadowBlur = 12;
+            const plutoPos = worldToScreen(pluto.x, pluto.y);
+            ctx.beginPath();
+            ctx.arc(plutoPos.x, plutoPos.y, pluto.size, 0, 2 * Math.PI);
+            ctx.fillStyle = pluto.color;
+            ctx.fill();
+            drawLabel('Pluto', plutoPos.x, plutoPos.y, '#c8b0ff', 12, -14);
+
+            ctx.shadowColor = charon.color;
+            const charonPos = worldToScreen(charon.x, charon.y);
+            ctx.beginPath();
+            ctx.arc(charonPos.x, charonPos.y, charon.size, 0, 2 * Math.PI);
+            ctx.fillStyle = charon.color;
+            ctx.fill();
+            drawLabel('Charon', charonPos.x, charonPos.y, '#b0d0ff', 12, -14);
+
+            // 潮汐虚线
+            ctx.beginPath();
+            ctx.strokeStyle = '#e0a0d0b0';
+            ctx.lineWidth = 1.5;
+            ctx.setLineDash([6, 8]);
+            ctx.moveTo(plutoPos.x, plutoPos.y);
+            ctx.lineTo(charonPos.x, charonPos.y);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.shadowBlur = 0;
+        }
+
+        // ========== 窗口自适应 & 事件绑定 ==========
+        function resizeAndReset() {
+            width = window.innerWidth;
+            height = window.innerHeight;
+            canvas.width = width;
+            canvas.height = height;
+            centerX = width / 2;
+            centerY = height / 2;
+            updateBaseScale();
+            initStarfield();
+            initAsteroidAngles();
+            resetCamera();
+        }
+
+        function animate(now) {
+            if (!lastTimestamp) {
+                lastTimestamp = now;
+                requestAnimationFrame(animate);
+                return;
+            }
+            let dt = Math.min(0.05, (now - lastTimestamp) / 1000);
+            lastTimestamp = now;
+            updateAndDraw(dt);
+            requestAnimationFrame(animate);
+        }
+
+        function initEvents() {
+            canvas.addEventListener('wheel', handleWheel, { passive: false });
+            canvas.addEventListener('mousedown', (e) => {
+                if (e.button === 0) {
+                    const rect = canvas.getBoundingClientRect();
+                    const screenX = (e.clientX - rect.left) * (width / rect.width);
+                    const screenY = (e.clientY - rect.top) * (height / rect.height);
+                    startDrag(screenX, screenY);
+                    e.preventDefault();
+                }
+            });
+            window.addEventListener('mousemove', (e) => {
+                if (isDragging) {
+                    const rect = canvas.getBoundingClientRect();
+                    const screenX = (e.clientX - rect.left) * (width / rect.width);
+                    const screenY = (e.clientY - rect.top) * (height / rect.height);
+                    onDrag(screenX, screenY);
+                    e.preventDefault();
+                }
+            });
+            window.addEventListener('mouseup', () => {
+                if (isDragging) endDrag();
+            });
+
+            canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+            canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+            canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+            canvas.addEventListener('touchcancel', handleTouchEnd);
+        }
+
+        resizeAndReset();
+        initEvents();
+        requestAnimationFrame(animate);
+    })();
+</script>
+</body>
+</html>        let ctx = canvas.getContext('2d');
         let width, height;
         let baseScale = 6.5;        // 基础像素/AU (根据窗口计算)
         let centerX, centerY;        // 屏幕中心
