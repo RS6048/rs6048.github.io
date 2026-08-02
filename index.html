@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Home — RS6048</title>
+  <link rel="stylesheet" href="/assets/css/style.css">
+  <script defer src="/assets/js/main.js"></script>
+</head>
+<body>
+  <main class="hero">
+    <div class="card">
+      <div class="logo" aria-hidden="true"></div>
+      <h1 class="title">Hi — I'm RS6048</h1>
+      <p class="tagline">Design · Code · Projects</p>
+
+      <div class="actions">
+        <a class="btn" href="/about.html">About</a>
+        <button class="btn ghost" id="projectsBtn">Projects</button>
+        <button class="toggle" id="themeToggle" aria-label="Toggle theme">☾</button>
+      </div>
+    </div>
+
+    <!-- Projects Modal (keeps everything in one frame, no scroll) -->
+    <div id="projectsModal" class="modal" role="dialog" aria-hidden="true">
+      <div class="modal-inner">
+        <button class="modal-close" id="closeProjects" aria-label="Close projects">✕</button>
+        <h2>Selected projects</h2>
+        <div class="projects-grid">
+          <article class="project">
+            <h3>Project One</h3>
+            <p>Short description — modern frontend, accessible, small demo.</p>
+            <a class="link" href="#">View</a>
+          </article>
+          <article class="project">
+            <h3>Project Two</h3>
+            <p>Short description — tooling, automation, experiments.</p>
+            <a class="link" href="#">View</a>
+          </article>
+          <article class="project">
+            <h3>Project Three</h3>
+            <p>Short description — experiments, writing, prototypes.</p>
+            <a class="link" href="#">View</a>
+          </article>
+        </div>
+      </div>
+    </div>
+  </main>
+
+</body>
+</html>
