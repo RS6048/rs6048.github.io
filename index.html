@@ -474,9 +474,8 @@
                 </div>
                 <span class="avatar-label">Home</span>
             </div>
-            <button class="theme-toggle" id="themeToggle" aria-label="切换夜间模式">
+            <button class="theme-toggle" id="themeToggle">
                 <i class="fas fa-moon" id="themeIcon"></i>
-                <span id="themeLabel">night</span>
             </button>
         </header>
 
@@ -492,8 +491,8 @@
                     This page is merely finished...
                 </p>
                 <div class="social-links">
-                    <a href="#"><i class="fab fa-github"></i> GitHub</a>
-                    <a href="#"><i class="fas fa-envelope"></i> mail</a>
+                    <a href="https://github.com/RS6048"><i class="fab fa-github"></i> GitHub</a>
+                    <a href="rs6048@qq.com"><i class="fas fa-envelope"></i> mail</a>
                 </div>
             </section>
 
@@ -531,7 +530,6 @@
             if (currentTheme === 'dark') {
                 document.documentElement.setAttribute('data-theme', 'dark');
                 icon.className = 'fas fa-sun';
-                label.textContent = '日间';
             }
 
             toggleBtn.addEventListener('click', function() {
@@ -540,13 +538,11 @@
                     // 切换到日间
                     document.documentElement.removeAttribute('data-theme');
                     icon.className = 'fas fa-moon';
-                    label.textContent = '夜间';
                     localStorage.setItem('theme', 'light');
                 } else {
                     // 切换到夜间
                     document.documentElement.setAttribute('data-theme', 'dark');
                     icon.className = 'fas fa-sun';
-                    label.textContent = '日间';
                     localStorage.setItem('theme', 'dark');
                 }
             });
