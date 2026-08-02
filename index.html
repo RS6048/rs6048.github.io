@@ -1,32 +1,560 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="zh-CN">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width,initial-scale=1">
-  <title>Home — RS6048</title>
-  <link rel="stylesheet" href="/assets/css/style.css">
-  <script defer src="/assets/js/main.js"></script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>个人主页 · 夜间模式</title>
+    <!-- Font Awesome 5 (免费图标库) -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+    <style>
+        /* ----- 全局重置 & 变量 ----- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            /* 日间模式 */
+            --bg-primary: #f8fafc;
+            --bg-card: #ffffff;
+            --text-primary: #0f172a;
+            --text-secondary: #334155;
+            --text-muted: #64748b;
+            --border-light: #e2e8f0;
+            --shadow-sm: 0 4px 20px rgba(0, 0, 0, 0.04);
+            --shadow-hover: 0 12px 40px rgba(0, 0, 0, 0.08);
+            --accent: #3b82f6;
+            --accent-soft: #dbeafe;
+            --transition: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* 夜间模式变量 */
+        [data-theme="dark"] {
+            --bg-primary: #0b1120;
+            --bg-card: #1e293b;
+            --text-primary: #f1f5f9;
+            --text-secondary: #cbd5e1;
+            --text-muted: #94a3b8;
+            --border-light: #334155;
+            --shadow-sm: 0 4px 20px rgba(0, 0, 0, 0.3);
+            --shadow-hover: 0 12px 40px rgba(0, 0, 0, 0.5);
+            --accent: #60a5fa;
+            --accent-soft: #1e293b;
+        }
+
+        /* ----- 基础样式 ----- */
+        html,
+        body {
+            height: 100%;
+            overflow: hidden;
+            /* 禁止滚动 — 单屏 */;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            transition: background var(--transition), color var(--transition);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+
+        /* 主容器 — 全屏卡片 */
+        .container {
+            max-width: 1200px;
+            width: 100%;
+            height: 100%;
+            max-height: 720px;
+            /* 优雅比例 */
+            background: var(--bg-card);
+            border-radius: 2.5rem;
+            box-shadow: var(--shadow-sm);
+            padding: 2.5rem 3rem;
+            display: flex;
+            flex-direction: column;
+            transition: background var(--transition), box-shadow var(--transition), border-color var(--transition);
+            border: 1px solid var(--border-light);
+            position: relative;
+            overflow: hidden;
+            /* 保证圆角裁切 */;
+        }
+
+        /* ----- 顶部导航 (头像 + 切换) ----- */
+        .navbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.75rem;
+            flex-shrink: 0;
+        }
+
+        .avatar-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            background: var(--accent-soft);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: var(--accent);
+            transition: background var(--transition), color var(--transition);
+            border: 2px solid var(--border-light);
+        }
+
+        .avatar-label {
+            font-weight: 500;
+            font-size: 1rem;
+            color: var(--text-secondary);
+            letter-spacing: -0.01em;
+        }
+
+        .theme-toggle {
+            background: var(--bg-primary);
+            border: 1px solid var(--border-light);
+            border-radius: 40px;
+            padding: 0.5rem 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            cursor: pointer;
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            transition: all var(--transition);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .theme-toggle:hover {
+            background: var(--accent-soft);
+            border-color: var(--accent);
+            color: var(--accent);
+            transform: scale(1.02);
+        }
+
+        .theme-toggle i {
+            font-size: 1rem;
+            transition: transform 0.2s;
+        }
+
+        /* ----- 主体布局 (about + projects) ----- */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.2fr;
+            gap: 2rem;
+            flex: 1;
+            min-height: 0;
+            /* 防止溢出 */;
+        }
+
+        /* ----- 左侧：About (简介) ----- */
+        .about-section {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            animation: fadeSlideUp 0.7s ease-out both;
+        }
+
+        .badge {
+            display: inline-block;
+            background: var(--accent-soft);
+            color: var(--accent);
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.03em;
+            padding: 0.25rem 0.8rem;
+            border-radius: 40px;
+            text-transform: uppercase;
+            margin-bottom: 1rem;
+            width: fit-content;
+            border: 1px solid var(--border-light);
+            transition: background var(--transition), color var(--transition);
+        }
+
+        .about-section h1 {
+            font-size: 2.6rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            line-height: 1.1;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        .about-section h1 span {
+            color: var(--accent);
+        }
+
+        .about-section .title-role {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.75rem;
+            font-weight: 400;
+        }
+
+        .about-section p {
+            color: var(--text-muted);
+            line-height: 1.6;
+            max-width: 90%;
+            font-size: 0.95rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .social-links {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .social-links a {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            color: var(--text-muted);
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 500;
+            padding: 0.3rem 0.8rem;
+            border-radius: 40px;
+            background: var(--bg-primary);
+            border: 1px solid var(--border-light);
+            transition: all var(--transition);
+        }
+
+        .social-links a:hover {
+            color: var(--accent);
+            border-color: var(--accent);
+            background: var(--accent-soft);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .social-links a i {
+            font-size: 1rem;
+        }
+
+        /* ----- 右侧：Projects (项目卡片) ----- */
+        .projects-section {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            animation: fadeSlideUp 0.7s ease-out 0.15s both;
+        }
+
+        .projects-section .section-label {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            font-weight: 600;
+            margin-bottom: 1rem;
+        }
+
+        .project-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .project-card {
+            background: var(--bg-primary);
+            border-radius: 1.2rem;
+            padding: 1.2rem 1.2rem 1rem;
+            border: 1px solid var(--border-light);
+            transition: all var(--transition);
+            cursor: default;
+            display: flex;
+            flex-direction: column;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .project-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-hover);
+            border-color: var(--accent);
+            background: var(--bg-card);
+        }
+
+        .project-card .icon {
+            font-size: 1.4rem;
+            color: var(--accent);
+            margin-bottom: 0.5rem;
+            transition: transform 0.2s;
+        }
+
+        .project-card:hover .icon {
+            transform: scale(1.1) rotate(-2deg);
+        }
+
+        .project-card h3 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-bottom: 0.2rem;
+            color: var(--text-primary);
+        }
+
+        .project-card p {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+            flex: 1;
+            margin-bottom: 0.5rem;
+        }
+
+        .project-card .tag {
+            font-size: 0.6rem;
+            font-weight: 600;
+            color: var(--accent);
+            background: var(--accent-soft);
+            padding: 0.15rem 0.6rem;
+            border-radius: 40px;
+            align-self: flex-start;
+            border: 1px solid var(--border-light);
+            transition: background var(--transition);
+        }
+
+        /* ----- 页脚 (底部) ----- */
+        .footer {
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-light);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            transition: border-color var(--transition);
+        }
+
+        .footer a {
+            color: var(--text-muted);
+            text-decoration: none;
+            transition: color var(--transition);
+        }
+
+        .footer a:hover {
+            color: var(--accent);
+        }
+
+        .footer .credit i {
+            color: var(--accent);
+            margin: 0 0.2rem;
+        }
+
+        /* ----- 动画关键帧 ----- */
+        @keyframes fadeSlideUp {
+            0% {
+                opacity: 0;
+                transform: translateY(18px);
+            }
+            100% {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* 卡片入场微动效 */
+        .project-card:nth-child(1) {
+            animation: fadeSlideUp 0.6s ease-out 0.2s both;
+        }
+        .project-card:nth-child(2) {
+            animation: fadeSlideUp 0.6s ease-out 0.3s both;
+        }
+        .project-card:nth-child(3) {
+            animation: fadeSlideUp 0.6s ease-out 0.4s both;
+        }
+        .project-card:nth-child(4) {
+            animation: fadeSlideUp 0.6s ease-out 0.5s both;
+        }
+
+        /* ----- 响应式 (保持单屏) ----- */
+        @media (max-width: 900px) {
+            .container {
+                padding: 1.8rem 1.8rem;
+                max-height: none;
+                height: 95vh;
+                border-radius: 1.8rem;
+            }
+
+            .main-grid {
+                grid-template-columns: 1fr;
+                gap: 1.2rem;
+                overflow-y: auto;
+                /* 极端小屏允许内部滚动，但整体不滚动 */
+                padding-right: 0.2rem;
+            }
+
+            .about-section h1 {
+                font-size: 2rem;
+            }
+            .about-section p {
+                max-width: 100%;
+            }
+
+            .project-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .navbar {
+                margin-bottom: 1rem;
+            }
+            .avatar-label {
+                display: none;
+            }
+        }
+
+        @media (max-width: 550px) {
+            .container {
+                padding: 1.2rem 1rem;
+                border-radius: 1.2rem;
+                height: 98vh;
+            }
+
+            .project-grid {
+                grid-template-columns: 1fr;
+                gap: 0.7rem;
+            }
+
+            .about-section h1 {
+                font-size: 1.8rem;
+            }
+
+            .social-links a {
+                padding: 0.2rem 0.6rem;
+                font-size: 0.8rem;
+            }
+
+            .theme-toggle span {
+                display: none;
+            }
+            .theme-toggle {
+                padding: 0.4rem 0.8rem;
+            }
+
+            .footer {
+                flex-direction: column;
+                gap: 0.3rem;
+                align-items: flex-start;
+                font-size: 0.7rem;
+            }
+        }
+
+        /* 自定义滚动条 (仅内部滚动时优雅) */
+        .main-grid::-webkit-scrollbar {
+            width: 4px;
+        }
+        .main-grid::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        .main-grid::-webkit-scrollbar-thumb {
+            background: var(--border-light);
+            border-radius: 10px;
+        }
+    </style>
 </head>
 <body>
-  <main class="hero">
-    <div class="card">
-      <div class="logo" aria-hidden="true"></div>
-      <h1 class="title">Hi — I'm RS6048</h1>
-      <p class="tagline">Design · Code · Projects</p>
 
-      <div class="actions">
-        <!-- Keep homepage focused: no project previews here. -->
-        <button class="toggle" id="themeToggle" aria-label="Toggle theme">☾</button>
-      </div>
+    <div class="container" role="main">
+
+        <!-- 顶部导航 -->
+        <header class="navbar">
+            <div class="avatar-wrapper">
+                <div class="avatar" aria-label="头像">
+                    <i class="fas fa-code"></i>
+                </div>
+                <span class="avatar-label">Home</span>
+            </div>
+            <button class="theme-toggle" id="themeToggle" aria-label="切换夜间模式">
+                <i class="fas fa-moon" id="themeIcon"></i>
+                <span id="themeLabel">night</span>
+            </button>
+        </header>
+
+        <!-- 主要内容网格 -->
+        <div class="main-grid">
+
+            <!-- 左侧：About (简介) -->
+            <section class="about-section">
+                <div class="badge"><i class="fas fa-user-astronaut" style="margin-right: 4px;"></i> About myself</div>
+                <h1>RS6048</h1>
+                <div class="title-role">I'm a 3D animator and programmer.</div>
+                <p>
+                    This page is merely finished...
+                </p>
+                <div class="social-links">
+                    <a href="#"><i class="fab fa-github"></i> GitHub</a>
+                    <a href="#"><i class="fas fa-envelope"></i> mail</a>
+                </div>
+            </section>
+
+            <!-- 右侧：Projects -->
+            <section class="projects-section">
+                <div class="section-label"><i class="fas fa-folder-open" style="margin-right: 6px;"></i> Recent Projects</div>
+                <div class="project-grid">
+
+                    <div class="project-card">
+                        <div class="icon"><i class="fas fa-cloud-sun"></i></div>
+                        <h3>preProject1</h3>
+                        <p>hello world!</p>
+                        <span class="tag">world?</span>
+                    </div>
+
+                </div>
+            </section>
+        </div>
+
+        <!-- 页脚 -->
+        <footer class="footer">
+            <span>© 2026 RS6048</span>
+        </footer>
     </div>
 
-    <!-- Hover bar (shows links on hover) -->
-    <nav class="hover-bar" aria-label="Quick links">
-      <div class="hover-inner">
-        <a class="hover-link" href="/about.html">About</a>
-      </div>
-    </nav>
+    <!-- 夜间模式切换脚本 -->
+    <script>
+        (function() {
+            const toggleBtn = document.getElementById('themeToggle');
+            const icon = document.getElementById('themeIcon');
+            const label = document.getElementById('themeLabel');
 
-  </main>
+            // 读取本地存储中的主题偏好
+            const currentTheme = localStorage.getItem('theme') || 'light';
+            if (currentTheme === 'dark') {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                icon.className = 'fas fa-sun';
+                label.textContent = '日间';
+            }
+
+            toggleBtn.addEventListener('click', function() {
+                const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+                if (isDark) {
+                    // 切换到日间
+                    document.documentElement.removeAttribute('data-theme');
+                    icon.className = 'fas fa-moon';
+                    label.textContent = '夜间';
+                    localStorage.setItem('theme', 'light');
+                } else {
+                    // 切换到夜间
+                    document.documentElement.setAttribute('data-theme', 'dark');
+                    icon.className = 'fas fa-sun';
+                    label.textContent = '日间';
+                    localStorage.setItem('theme', 'dark');
+                }
+            });
+
+            // 可选：系统偏好自动适配 (但保留用户手动选择)
+            // 这里不强制覆盖，以免干扰用户选择
+        })();
+    </script>
+
 </body>
 </html>
