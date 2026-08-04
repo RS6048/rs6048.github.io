@@ -1,35 +1,41 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>RS6048</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
     <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
-    <!-- ====== 首页 ====== -->
     <div class="home-container">
-        <!-- 左半（手机端上半） -->
+        <!-- Left half (top on mobile) -->
         <div class="home-left">
             <div class="profile">
                 <div class="avatar">RS</div>
-                <h1 class="name">6048</h1>
-                <p class="tagline">A programmer and somepony else.</p>
+                <h1 class="name">RS6048</h1>
+                <p class="tagline">Full-stack Developer &amp; Creative Designer</p>
+                <p class="learn-more">
+                    <a href="about/index.html">Learn more <i class="fas fa-arrow-right"></i></a>
+                </p>
                 <div class="contacts">
-                    <a href="mailto:rs6048@qq.com" class="contact-link">📧 mail</a>
-                    <a href="https://github.com/RS6048" class="contact-link">🐙 GitHub</a>
+                    <a href="mailto:rs6048@qq.com" class="contact-link"><i class="fas fa-envelope"></i> Email</a>
+                    <a href="https://github.com/RS6048" class="contact-link"><i class="fab fa-github"></i> GitHub</a>
+                    <a href="#" class="contact-link"><i class="fab fa-linkedin-in"></i> LinkedIn</a>
                 </div>
             </div>
         </div>
 
-        <!-- 右半（手机端下半） -->
+        <!-- Right half (bottom on mobile) -->
         <div class="home-right">
             <div class="recent-projects">
-                <h2 class="section-title">Recent Projects</h2>
-                <div class="project-list" id="recentProjectList">
-                    <!-- 由 JS 动态渲染 -->
+                <div class="section-header">
+                    <h2 class="section-title">Recent Projects</h2>
+                    <a href="projects/index.html" class="more-link">More Projects -> <i class="fas fa-arrow-right"></i></a>
                 </div>
-                <a href="projects" class="view-all">View All -></a>
+                <div class="project-list" id="recentProjectList">
+                    <!-- Rendered by JS -->
+                </div>
             </div>
         </div>
     </div>
