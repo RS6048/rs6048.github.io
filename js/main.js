@@ -13,10 +13,8 @@ function renderRecentProjects() {
     if (!container) return;
     // projectsData is global from data.js
     const recent = projectsData.slice(0, 4);
-    const projectFolders = ['projectA', 'projectB', 'projectC', 'projectD', 'projectE'];
     container.innerHTML = recent.map((proj, index) => {
-        const folder = projectFolders[index] || `project${String.fromCharCode(65 + index)}`;
-        return `<div class="project-item" onclick="location.href='projects/${folder}/index.html'">
+        return `<div class="project-item" onclick="location.href='projects/${proj.folder}'">
             <h3>${proj.title}</h3>
             <p>${proj.description}</p>
             <div class="tags">${renderTags(proj.tags)}</div>
@@ -36,11 +34,9 @@ function renderAllProjects(filter = '') {
             p.tags.some(t => t.toLowerCase().includes(query))
         );
     }
-    const projectFolders = ['projectA', 'projectB', 'projectC', 'projectD', 'projectE'];
     container.innerHTML = filtered.map((proj) => {
         const idx = projectsData.findIndex(p => p.id === proj.id);
-        const folder = projectFolders[idx] || `project${String.fromCharCode(65 + idx)}`;
-        return `<div class="project-card" onclick="location.href='${folder}/index.html'">
+        return `<div class="project-card" onclick="location.href='${proj.folder}'">
             <h3>${proj.title}</h3>
             <p>${proj.description}</p>
             <div class="tags">${renderTags(proj.tags)}</div>
