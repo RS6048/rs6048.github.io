@@ -373,7 +373,7 @@ a:hover {
 }
 
 /* ----- Responsive: mobile ----- */
-@media (max-width: 768px) {
+@media (max-width: 900px), (pointer: coarse) {
     .home-container {
         flex-direction: column;
         height: auto;
