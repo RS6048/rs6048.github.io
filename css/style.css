@@ -344,7 +344,9 @@ a:hover {
 }
 
 /* ----- Status Tags (Ongoing / Halt / Finished) ----- */
-.status-tag {
+/* Higher-specificity selectors to override default .tags span styles */
+.project-item .tags span.status-tag,
+.project-card .tags span.status-tag {
     display: inline-flex;
     align-items: center;
     gap: 0.3rem;
@@ -355,23 +357,27 @@ a:hover {
     font-weight: 500;
 }
 
-.status-tag i {
+.project-item .tags span.status-tag i,
+.project-card .tags span.status-tag i {
     font-size: 0.65rem;
 }
 
-.status-ongoing {
+.project-item .tags span.status-ongoing,
+.project-card .tags span.status-ongoing {
     color: #ffb347;
     border-color: #ffb347;
     background: rgba(255, 179, 71, 0.08);
 }
 
-.status-halt {
+.project-item .tags span.status-halt,
+.project-card .tags span.status-halt {
     color: #ff6b6b;
     border-color: #ff6b6b;
     background: rgba(255, 107, 107, 0.08);
 }
 
-.status-finished {
+.project-item .tags span.status-finished,
+.project-card .tags span.status-finished {
     color: #6bcb77;
     border-color: #6bcb77;
     background: rgba(107, 203, 119, 0.08);
