@@ -1,10 +1,22 @@
 // data is loaded from data.js (via script tag)
 
-// Helper: render tags with Font Awesome
+// Status tag definitions (special tags rendered with custom colors/icons)
+const STATUS_TAGS = ['Ongoing', 'Halt', 'Finished'];
+const STATUS_CONFIG = {
+    'Ongoing': { icon: 'fa-circle-notch', cls: 'status-ongoing' },
+    'Halt': { icon: 'fa-pause', cls: 'status-halt' },
+    'Finished': { icon: 'fa-check', cls: 'status-finished' }
+};
+
+// Helper: render tags with Font Awesome (status tags get special styling)
 function renderTags(tags) {
-    return tags.map(tag =>
-        `<span><i class="fas fa-tag"></i> ${tag}</span>`
-    ).join('');
+    return tags.map(tag => {
+        if (STATUS_TAGS.includes(tag)) {
+            const cfg = STATUS_CONFIG[tag];
+            return `<span class="status-tag ${cfg.cls}"><i class="fas ${cfg.icon}"></i> ${tag}</span>`;
+        }
+        return `<span><i class="fas fa-tag"></i> ${tag}</span>`;
+    }).join('');
 }
 
 // Homepage (root): render recent projects (max 4) with full path to projects/
