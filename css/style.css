@@ -343,6 +343,40 @@ a:hover {
     gap: 0.3rem;
 }
 
+/* ----- Status Tags (Ongoing / Halt / Finished) ----- */
+.status-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.7rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 12px;
+    border: 1px solid;
+    font-weight: 500;
+}
+
+.status-tag i {
+    font-size: 0.65rem;
+}
+
+.status-ongoing {
+    color: #ffb347;
+    border-color: #ffb347;
+    background: rgba(255, 179, 71, 0.08);
+}
+
+.status-halt {
+    color: #ff6b6b;
+    border-color: #ff6b6b;
+    background: rgba(255, 107, 107, 0.08);
+}
+
+.status-finished {
+    color: #6bcb77;
+    border-color: #6bcb77;
+    background: rgba(107, 203, 119, 0.08);
+}
+
 /* Detail page */
 .detail-content {
     max-width: 800px;
