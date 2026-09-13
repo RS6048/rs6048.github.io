@@ -344,7 +344,37 @@ a:hover {
 }
 
 /* ----- Status Tags (Ongoing / Halt / Finished) ----- */
-/* Higher-specificity selectors to override default .tags span styles */
+/* Base look for status tags (detail / guide pages) */
+.status-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.7rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 12px;
+    border: 1px solid;
+    font-weight: 500;
+}
+.status-tag i {
+    font-size: 0.65rem;
+}
+.status-ongoing {
+    color: #ffb347;
+    border-color: #ffb347;
+    background: rgba(255, 179, 71, 0.08);
+}
+.status-halt {
+    color: #ff6b6b;
+    border-color: #ff6b6b;
+    background: rgba(255, 107, 107, 0.08);
+}
+.status-finished {
+    color: #6bcb77;
+    border-color: #6bcb77;
+    background: rgba(107, 203, 119, 0.08);
+}
+
+/* Higher-specificity selectors to override default .tags span styles inside cards */
 .project-item .tags span.status-tag,
 .project-card .tags span.status-tag {
     display: inline-flex;
@@ -356,31 +386,37 @@ a:hover {
     border: 1px solid;
     font-weight: 500;
 }
-
 .project-item .tags span.status-tag i,
 .project-card .tags span.status-tag i {
     font-size: 0.65rem;
 }
-
 .project-item .tags span.status-ongoing,
 .project-card .tags span.status-ongoing {
     color: #ffb347;
     border-color: #ffb347;
     background: rgba(255, 179, 71, 0.08);
 }
-
 .project-item .tags span.status-halt,
 .project-card .tags span.status-halt {
     color: #ff6b6b;
     border-color: #ff6b6b;
     background: rgba(255, 107, 107, 0.08);
 }
-
 .project-item .tags span.status-finished,
 .project-card .tags span.status-finished {
     color: #6bcb77;
     border-color: #6bcb77;
     background: rgba(107, 203, 119, 0.08);
+}
+
+/* Last update date on project cards */
+.last-update {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.75rem;
+    color: #6a8ca8;
+    margin-top: 0.5rem;
 }
 
 /* Detail page */
@@ -410,6 +446,58 @@ a:hover {
     line-height: 1.8;
     color: #c8dce8;
     margin-bottom: 1rem;
+}
+
+/* Guide page: status row + update tag */
+.project-status {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+.update-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: #1a3854;
+    color: #7ec8e3;
+    font-size: 0.8rem;
+    padding: 0.2rem 0.8rem;
+    border-radius: 12px;
+}
+
+/* Guide page: mock project link list (no navigation yet) */
+.detail-content h2 {
+    font-size: 1.6rem;
+    font-weight: 300;
+    color: #d0e8f5;
+    margin: 2rem 0 1rem;
+}
+.project-links {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+.mock-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+    color: #7ec8e3;
+    background: #122a40;
+    border-left: 3px solid #7ec8e3;
+    border-radius: 8px;
+    padding: 0.7rem 1rem;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+    font-size: 1rem;
+}
+.mock-link i {
+    color: #7ec8e3;
+    font-size: 1rem;
+}
+.mock-link:hover {
+    background: #1a3854;
+    color: #b0e0ff;
 }
 
 /* ----- Responsive: mobile ----- */
