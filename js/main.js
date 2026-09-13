@@ -19,6 +19,12 @@ function renderTags(tags) {
     }).join('');
 }
 
+// Helper: render last update date if present
+function renderLastUpdate(proj) {
+    if (!proj.lastUpdate) return '';
+    return `<div class="last-update"><i class="far fa-calendar"></i> Updated: ${proj.lastUpdate}</div>`;
+}
+
 // Homepage (root): render recent projects (max 4) with full path to projects/
 function renderRecentProjects() {
     const container = document.getElementById('recentProjectList');
@@ -30,6 +36,7 @@ function renderRecentProjects() {
             <h3>${proj.title}</h3>
             <p>${proj.description}</p>
             <div class="tags">${renderTags(proj.tags)}</div>
+            ${renderLastUpdate(proj)}
         </div>`;
     }).join('');
 }
@@ -47,11 +54,11 @@ function renderAllProjects(filter = '') {
         );
     }
     container.innerHTML = filtered.map((proj) => {
-        const idx = projectsData.findIndex(p => p.id === proj.id);
         return `<div class="project-card" onclick="location.href='${proj.folder}'">
             <h3>${proj.title}</h3>
             <p>${proj.description}</p>
             <div class="tags">${renderTags(proj.tags)}</div>
+            ${renderLastUpdate(proj)}
         </div>`;
     }).join('');
 }
