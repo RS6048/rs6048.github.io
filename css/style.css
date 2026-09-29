@@ -447,6 +447,9 @@ a:hover {
     color: #c8dce8;
     margin-bottom: 1rem;
 }
+.detail-content strong {
+    color: #d0e8f5;
+}
 
 /* Guide page: status row + update tag */
 .project-status {
@@ -466,19 +469,55 @@ a:hover {
     border-radius: 12px;
 }
 
-/* Guide page: mock project link list (no navigation yet) */
+/* Guide page: project/detail lists */
 .detail-content h2 {
     font-size: 1.6rem;
     font-weight: 300;
     color: #d0e8f5;
     margin: 2rem 0 1rem;
 }
+.detail-list {
+    margin: 0 0 1.2rem 1.4rem;
+    color: #c8dce8;
+    font-size: 1rem;
+    line-height: 1.7;
+}
+.detail-list li {
+    margin-bottom: 0.4rem;
+}
+.detail-list code {
+    background: #1a3854;
+    color: #b0e0ff;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.9em;
+}
+
+/* Guide page: diagram */
+.guide-figure {
+    margin: 0 0 1.5rem;
+}
+.guide-image {
+    max-width: 100%;
+    border-radius: 10px;
+    border: 1px solid #1e3a5a;
+    background: #122a40;
+    display: block;
+}
+.guide-figure figcaption {
+    font-size: 0.8rem;
+    color: #6a8ca8;
+    margin-top: 0.4rem;
+}
+
+/* Guide page: link list (mock links without navigation, real links with href) */
 .project-links {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
 }
-.mock-link {
+.mock-link,
+.guide-link {
     display: inline-flex;
     align-items: center;
     gap: 0.6rem;
@@ -491,13 +530,19 @@ a:hover {
     transition: background 0.2s, color 0.2s;
     font-size: 1rem;
 }
-.mock-link i {
+.mock-link i,
+.guide-link i {
     color: #7ec8e3;
     font-size: 1rem;
 }
-.mock-link:hover {
+.mock-link:hover,
+.guide-link:hover {
     background: #1a3854;
     color: #b0e0ff;
+}
+.file-note {
+    font-size: 0.8rem;
+    color: #6a8ca8;
 }
 
 /* ----- Responsive: mobile ----- */
