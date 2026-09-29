@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RS6048 | Java-js Bridge</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="../../../css/style.css" />
+</head>
+<body>
+    <div class="page-container">
+        <a href="../" class="back-home"><i class="fas fa-arrow-left"></i> Back</a>
+        <div class="detail-content">
+            <h1>Java-js Bridge</h1>
+            <div class="project-status">
+                <span class="status-tag status-ongoing"><i class="fas fa-circle-notch"></i> Ongoing</span>
+                <span class="update-tag"><i class="far fa-calendar"></i> Updated: 2026-09-29</span>
+            </div>
+
+            <p>This project solves a long-standing pain point of <strong>TurboWarp</strong> projects: direct access to local files. By combining a <strong>custom extension</strong> with a <strong>JCEF</strong> (Java Chromium Embedded Framework) host, it bridges the sandboxed project to the host filesystem in a controlled, secure way.</p>
+
+            <h2>The Problem</h2>
+            <p>TurboWarp compiles Scratch projects into fast JavaScript/WebAssembly and runs them inside an ordinary browser sandbox. Web security rules deliberately prevent a page from silently reading arbitrary files on the host machine:</p>
+            <ul class="detail-list">
+                <li><code>fetch("file://...")</code> is blocked by browsers for security reasons.</li>
+                <li>The official File System Access API requires a user gesture and a file-picker dialog for <em>every single file</em>, which is unusable when a project wants to auto-load a whole folder of textures, sound banks or save data.</li>
+            </ul>
+            <p>As a result, a TurboWarp project running locally still behaves like a website: no reliable access to the files next to it.</p>
+
+            <h2>The Solution: JCEF + Custom Extension Bridge</h2>
+            <p>Instead of fighting the sandbox, we replace the browser itself. <strong>JCEF</strong> is the Java port of the Chromium Embedded Framework: it embeds a full Chromium browser inside a Swing/JavaFX application and exposes native capabilities that an ordinary web page never has:</p>
+            <ul class="detail-list">
+                <li><strong>Custom scheme handlers</strong> &mdash; register a private protocol (e.g. <code>tw-file://</code>) and intercept its requests in Java code.</li>
+                <li><strong>JavaScript extension registration</strong> &mdash; <code>CefRegisterExtension()</code> injects a native API object into every frame before the DOM exists.</li>
+                <li><strong>Bidirectional message routing</strong> &mdash; <code>CefMessageRouter</code> / process messages carry asynchronous calls between the page (renderer) and the host (browser process).</li>
+                <li><strong>Full JDK access</strong> &mdash; the Java side can use <code>java.io</code> and <code>java.nio.file</code> freely.</li>
+            </ul>
+            <p>The bridge chain is: <em>TurboWarp project &rarr; custom extension (JS) &rarr; JCEF bridge &rarr; Java host &rarr; local file</em>.</p>
+
+            <h2>How It Works</h2>
+            <ol class="detail-list">
+                <li>The host application starts an embedded Chromium window through JCEF and loads the TurboWarp editor/project.</li>
+                <li>A custom TurboWarp extension is loaded into the project; it exposes a small JS API such as <code>twFile.read(path)</code> (and may register a <code>tw-file://</code> scheme as well).</li>
+                <li>When the project calls the API, the renderer forwards the request through the CEF message router to the browser process.</li>
+                <li>The Java side validates the path against an <strong>allow-listed root directory</strong> (blocking <code>..</code> traversal and unexpected file types), then reads the file with <code>java.nio.file.Files</code>.</li>
+                <li>The content is returned asynchronously &mdash; plain text, or base64 for binary &mdash; and resolved as a promise inside the project. Images, audio and save data are then available to the TurboWarp project as if they were local.</li>
+            </ol>
+
+            <h2>Security Notes</h2>
+            <p>Reading files at will is a double-edged sword (a historical TurboWarp Desktop bug, CVE-2023-40168, allowed a malicious project to exfiltrate arbitrary files). The bridge therefore:</p>
+            <ul class="detail-list">
+                <li>Only serves paths inside a configured root folder &mdash; no <code>..</code> traversal, no absolute paths outside the root.</li>
+                <li>Validates file extensions against a whitelist.</li>
+                <li>Requires explicit user consent before the bridge is enabled.</li>
+            </ul>
+
+            <h2>Diagram</h2>
+            <figure class="guide-figure">
+                <img src="image_x.png" alt="Java-js Bridge architecture diagram" class="guide-image" />
+                <figcaption>Architecture: TurboWarp project &rarr; custom extension &rarr; JCEF JS bridge &rarr; Java host &rarr; local files (image_x.png).</figcaption>
+            </figure>
+
+            <h2>Downloads</h2>
+            <div class="project-links">
+                <a class="mock-link" href="extension.js" download><i class="fas fa-file-code"></i> extension.js <span class="file-note">(custom TurboWarp extension)</span></a>
+                <a class="mock-link" href="https://github.com/RS6048/rs6048.github.io/releases" target="_blank" rel="noopener"><i class="fas fa-download"></i> JCEF main files <span class="file-note">(release &mdash; coming soon)</span></a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
