@@ -14,10 +14,10 @@
             <h1>Java-js Bridge</h1>
             <div class="project-status">
                 <span class="status-tag status-ongoing"><i class="fas fa-circle-notch"></i> Ongoing</span>
-                <span class="update-tag"><i class="far fa-calendar"></i> Updated: 2026-09-29</span>
+                <span class="update-tag"><i class="far fa-calendar"></i> Updated: 2026-09-30</span>
             </div>
 
-            <p>This project solves a long-standing pain point of <strong>TurboWarp</strong> projects: direct access to local files. By combining a <strong>custom extension</strong> with a <strong>JCEF</strong> (Java Chromium Embedded Framework) host, it bridges the sandboxed project to the host filesystem in a controlled, secure way.</p>
+            <p>This project solves a long-standing pain point of <strong>TurboWarp</strong> projects: direct access to local files. It embeds a TurboWarp project inside a <strong>JCEF</strong> (Java Chromium Embedded Framework) window and bridges it to the host filesystem through <code>window.cefQuery</code>, a message router, and an <strong>unsandboxed custom extension</strong>.</p>
 
             <h2>The Problem</h2>
             <p>TurboWarp compiles Scratch projects into fast JavaScript/WebAssembly and runs them inside an ordinary browser sandbox. Web security rules deliberately prevent a page from silently reading arbitrary files on the host machine:</p>
@@ -28,37 +28,108 @@
             <p>As a result, a TurboWarp project running locally still behaves like a website: no reliable access to the files next to it.</p>
 
             <h2>The Solution: JCEF + Custom Extension Bridge</h2>
-            <p>Instead of fighting the sandbox, we replace the browser itself. <strong>JCEF</strong> is the Java port of the Chromium Embedded Framework: it embeds a full Chromium browser inside a Swing/JavaFX application and exposes native capabilities that an ordinary web page never has:</p>
-            <ul class="detail-list">
-                <li><strong>Custom scheme handlers</strong> &mdash; register a private protocol (e.g. <code>tw-file://</code>) and intercept its requests in Java code.</li>
-                <li><strong>JavaScript extension registration</strong> &mdash; <code>CefRegisterExtension()</code> injects a native API object into every frame before the DOM exists.</li>
-                <li><strong>Bidirectional message routing</strong> &mdash; <code>CefMessageRouter</code> / process messages carry asynchronous calls between the page (renderer) and the host (browser process).</li>
-                <li><strong>Full JDK access</strong> &mdash; the Java side can use <code>java.io</code> and <code>java.nio.file</code> freely.</li>
-            </ul>
-            <p>The bridge chain is: <em>TurboWarp project &rarr; custom extension (JS) &rarr; JCEF bridge &rarr; Java host &rarr; local file</em>.</p>
+            <p>Instead of fighting the sandbox, this project replaces the browser itself. <strong>JCEF</strong> is the Java port of the Chromium Embedded Framework: it embeds a full Chromium browser inside a Swing application and lets the host register a <em>message router</em> that injects a JS&harr;Java bridge (<code>window.cefQuery</code>) into the page. A custom <strong>unsandboxed</strong> TurboWarp extension turns that bridge into Scratch blocks.</p>
+            <p>The bridge chain is: <em>Scratch block &rarr; extension.js &rarr; <code>window.cefQuery</code> &rarr; <code>CefMessageRouter</code> &rarr; <code>FileMessageRouterHandler</code> (Java) &rarr; local file</em>.</p>
+
+            <h2>The Bridge Protocol</h2>
+            <p>All communication is JSON over <code>window.cefQuery</code>:</p>
+            <pre class="code-block"><code>// Request (from the page to Java)
+{ "action": "readFile", "path": "data.txt", "data": "hello" }
+
+// Response (from Java back to the page)
+{ "ok": true,  "data": "file content..." }   // success
+{ "ok": false, "error": "message" }          // failure</code></pre>
+            <p>Eight actions are implemented on the Java side:</p>
+            <table class="action-table">
+                <tr><th>Action</th><th>Purpose</th><th>data (response)</th></tr>
+                <tr><td><code>readFile</code></td><td>Read a file</td><td>file content (UTF-8)</td></tr>
+                <tr><td><code>writeFile</code></td><td>Overwrite a file</td><td>empty</td></tr>
+                <tr><td><code>appendFile</code></td><td>Append to a file</td><td>empty</td></tr>
+                <tr><td><code>listDir</code></td><td>List directory entries</td><td>JSON array string</td></tr>
+                <tr><td><code>exists</code></td><td>Check path existence</td><td>"true" / "false"</td></tr>
+                <tr><td><code>deleteFile</code></td><td>Delete file or empty dir</td><td>empty</td></tr>
+                <tr><td><code>makeDir</code></td><td>Create directories recursively</td><td>empty</td></tr>
+                <tr><td><code>fileSize</code></td><td>File size in bytes</td><td>number string</td></tr>
+            </table>
 
             <h2>How It Works</h2>
             <ol class="detail-list">
-                <li>The host application starts an embedded Chromium window through JCEF and loads the TurboWarp editor/project.</li>
-                <li>A custom TurboWarp extension is loaded into the project; it exposes a small JS API such as <code>twFile.read(path)</code> (and may register a <code>tw-file://</code> scheme as well).</li>
-                <li>When the project calls the API, the renderer forwards the request through the CEF message router to the browser process.</li>
-                <li>The Java side validates the path against an <strong>allow-listed root directory</strong> (blocking <code>..</code> traversal and unexpected file types), then reads the file with <code>java.nio.file.Files</code>.</li>
-                <li>The content is returned asynchronously &mdash; plain text, or base64 for binary &mdash; and resolved as a promise inside the project. Images, audio and save data are then available to the TurboWarp project as if they were local.</li>
+                <li><strong>Host startup</strong> &mdash; <code>Main.java</code> initializes CEF through jcefmaven (<code>CefAppBuilder</code>, install dir <code>jcef-bundle</code>), keeps the GPU enabled (TurboWarp needs WebGL) and enables off-screen rendering (<code>windowless_rendering_enabled = true</code>) so the browser embeds cleanly into a Swing window.</li>
+                <li><strong>Bridge registration</strong> &mdash; a <code>CefMessageRouter</code> with <code>FileMessageRouterHandler</code> is attached to the client. From then on every page in the browser gets a <code>window.cefQuery</code> function.</li>
+                <li><strong>Project load</strong> &mdash; the app loads <code>Project.html</code> (a TurboWarp packager output) from <code>file:///</code>, and the project loads the custom <strong>Local File</strong> extension in unsandboxed mode.</li>
+                <li><strong>Block call</strong> &mdash; when a Scratch block like <code>read [PATH]</code> runs, <code>extension.js</code> builds a payload <code>{action, path, data}</code>, serializes it and calls <code>window.cefQuery(...)</code>, wrapped in a Promise.</li>
+                <li><strong>Java side</strong> &mdash; <code>onQuery</code> hands the request to a 4-thread executor (so the CEF UI thread is never blocked); <code>dispatch()</code> performs the file operation with <code>java.nio.file</code> and replies via <code>callback.success(json)</code>.</li>
+                <li><strong>Back to Scratch</strong> &mdash; the JSON response is parsed, <code>ok</code> is checked, and the value (or an error) resolves the Promise. Reporter blocks return the value; command blocks simply await completion.</li>
             </ol>
 
-            <h2>Security Notes</h2>
-            <p>Reading files at will is a double-edged sword (a historical TurboWarp Desktop bug, CVE-2023-40168, allowed a malicious project to exfiltrate arbitrary files). The bridge therefore:</p>
+            <h2>Components</h2>
+            <h3>Main.java &mdash; the JCEF host</h3>
             <ul class="detail-list">
-                <li>Only serves paths inside a configured root folder &mdash; no <code>..</code> traversal, no absolute paths outside the root.</li>
-                <li>Validates file extensions against a whitelist.</li>
-                <li>Requires explicit user consent before the bridge is enabled.</li>
+                <li>Initializes <code>CefApp</code> via <code>CefAppBuilder</code>; native libraries ship as Gradle dependencies (no runtime download).</li>
+                <li><em>Never</em> disables the GPU: <code>--disable-gpu</code> stays commented out because TurboWarp projects rely on WebGL hardware acceleration.</li>
+                <li>Creates the message router and embeds the browser; mirrors the page title into the window via <code>CefDisplayHandlerAdapter.onTitleChange</code>.</li>
+                <li>Loads the project's favicon on a background thread (<code>FaviconLoader</code>) and sets it as the frame icon &mdash; without blocking the UI.</li>
+                <li>On window close: <code>browser.close(true)</code> and <code>cefApp.dispose()</code> release all native resources.</li>
+            </ul>
+            <h3>FileMessageRouterHandler.java &mdash; the Java bridge</h3>
+            <ul class="detail-list">
+                <li>Extends <code>CefMessageRouterHandlerAdapter</code>; <code>onQuery</code> parses the JSON request and dispatches by action.</li>
+                <li>All operations use <code>java.nio.file</code> (<code>Files.readAllBytes</code>, <code>Files.write</code>, <code>Files.createDirectories</code>, <code>Files.list</code>, <code>Files.deleteIfExists</code>, <code>Files.size</code>).</li>
+                <li>Errors are caught and returned as <code>{"ok":false,"error":...}</code> instead of crashing the page.</li>
+                <li>Security: <code>ROOT_LIMIT</code> is <code>null</code> by default (same permissions as the current user). When set, every path is normalized and checked with <code>startsWith</code>, which blocks <code>../</code> traversal outside the allowed root.</li>
+            </ul>
+            <h3>extension.js &mdash; the TurboWarp extension (&ldquo;Local File&rdquo;)</h3>
+            <ul class="detail-list">
+                <li>Requires the extension sandbox to be disabled: it throws <code>"Run it unsandbox!!!"</code> otherwise, because only unsandboxed extensions may touch <code>window.cefQuery</code>.</li>
+                <li><code>callJava(payload)</code> wraps <code>window.cefQuery</code> into a Promise; <code>exec(action, path, data)</code> builds the payload, checks <code>ok</code> and returns <code>data</code>.</li>
+                <li>Exposes eight Scratch blocks (green &ldquo;Local File&rdquo; category): read / write / append / list directory / exists / delete / make directory / file size.</li>
+            </ul>
+            <h3>FaviconLoader.java &mdash; the finishing touch</h3>
+            <ul class="detail-list">
+                <li>Scans <code>Project.html</code> for <code>&lt;link rel="..."&gt;</code> icons with priority <em>apple-touch-icon &gt; shortcut icon &gt; icon</em>.</li>
+                <li>Handles relative/absolute file paths, http(s) URLs and <code>data:</code> URIs; decodes PNG/JPEG/GIF/BMP and ICO files with embedded PNGs (SVG is skipped).</li>
+                <li>Enforces a 2&nbsp;MB limit so a broken icon can never stall the window; any failure silently returns <code>null</code>.</li>
             </ul>
 
-            <h2>Diagram</h2>
+            <h2>Usage</h2>
+            <p>Using the bridge in a project takes three steps.</p>
+            <ol class="detail-list">
+                <li><strong>Run the host app</strong> &mdash; place <code>Project.html</code> (packaged from TurboWarp) next to the program and start it. A Swing window opens with the project inside an embedded Chromium (Chromium 146).</li>
+                <li><strong>Load the extension unsandboxed</strong> &mdash; in the project, add the <em>Local File</em> extension (<code>extension.js</code>) in unsandboxed mode. Otherwise it refuses to start.</li>
+                <li><strong>Build blocks</strong> &mdash; for example:</li>
+            </ol>
+            <pre class="code-block"><code>when green flag clicked
+if &lt;exists [save.txt]&gt; then
+    set [content v] to (read [save.txt])      // reporter -&gt; file text
+    say (content)
+else
+    write [hello] into [save.txt]             // command, awaits completion
+    append [more lines] to [save.txt]
+end
+list directory [.]                             // -&gt; JSON array string
+file size of [save.txt]                        // -&gt; number</code></pre>
+            <p>Reporter/boolean blocks return their value directly to Scratch; command blocks (write/append/delete/makeDir) finish asynchronously and the next block runs after the operation completes. That is enough to build auto-save, level editors, asset loaders or text-based games that read and write real files on disk.</p>
+
+            <h2>Diagram &amp; Screenshots</h2>
             <figure class="guide-figure">
-                <img src="image_x.png" alt="Java-js Bridge architecture diagram" class="guide-image" />
-                <figcaption>Architecture: TurboWarp project &rarr; custom extension &rarr; JCEF JS bridge &rarr; Java host &rarr; local files (image_x.png).</figcaption>
+                <img src="image_0.png" alt="Java-js Bridge architecture diagram" class="guide-image" />
+                <figcaption>image_0.png &mdash; Architecture: Scratch blocks &rarr; extension.js &rarr; window.cefQuery &rarr; CefMessageRouter &rarr; FileMessageRouterHandler (Java) &rarr; local files.</figcaption>
             </figure>
+            <figure class="guide-figure">
+                <img src="image_1.png" alt="Editor usage example" class="guide-image" />
+                <figcaption>image_1.png &mdash; Usage example: loading the Local File extension (unsandboxed) in the TurboWarp editor and building the read/write blocks above.</figcaption>
+            </figure>
+            <figure class="guide-figure">
+                <img src="image_2.png" alt="Running window screenshot" class="guide-image" />
+                <figcaption>image_2.png &mdash; The app in action: a Swing window with the embedded project, its favicon as the window icon and the file content read from disk.</figcaption>
+            </figure>
+
+            <h2>Security Notes</h2>
+            <ul class="detail-list">
+                <li>The unsandboxed extension runs with the same permissions as the current user &mdash; the bridge is a powerful tool and should only be enabled for projects you trust (a historical TurboWarp Desktop bug, CVE-2023-40168, allowed a malicious project to exfiltrate arbitrary files).</li>
+                <li>For untrusted projects, set <code>ROOT_LIMIT</code> in <code>FileMessageRouterHandler</code> to an allow-listed directory; paths are normalized and prefix-checked, blocking <code>../</code> traversal.</li>
+                <li>Never load unknown projects or unknown extensions into this app.</li>
+            </ul>
 
             <h2>Downloads</h2>
             <div class="project-links">
