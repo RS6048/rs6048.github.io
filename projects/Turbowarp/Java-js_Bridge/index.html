@@ -92,23 +92,58 @@
             </ul>
 
             <h2>Usage</h2>
-            <p>Using the bridge in a project takes three steps.</p>
-            <ol class="detail-list">
-                <li><strong>Run the host app</strong> &mdash; place <code>Project.html</code> (packaged from TurboWarp) next to the program and start it. A Swing window opens with the project inside an embedded Chromium (Chromium 146).</li>
-                <li><strong>Load the extension unsandboxed</strong> &mdash; in the project, add the <em>Local File</em> extension (<code>extension.js</code>) in unsandboxed mode. Otherwise it refuses to start.</li>
-                <li><strong>Build blocks</strong> &mdash; for example:</li>
-            </ol>
+            <p>Three steps: (1)&nbsp;run the host app with <code>Project.html</code> (TurboWarp packager output) next to it; (2)&nbsp;load the <em>Local File</em> extension (<code>extension.js</code>) in <strong>unsandboxed</strong> mode &mdash; it refuses to start otherwise; (3)&nbsp;build blocks. Each block is one column below:</p>
+            <div class="block-columns">
+                <div class="block-col">
+                    <code>read [PATH]</code>
+                    <span class="block-type block-reporter">Reporter</span>
+                    <p>Returns the file content as text (UTF-8).</p>
+                </div>
+                <div class="block-col">
+                    <code>write [DATA] into [PATH]</code>
+                    <span class="block-type block-command">Command</span>
+                    <p>Overwrites a file, creating parent folders first.</p>
+                </div>
+                <div class="block-col">
+                    <code>append [DATA] to [PATH]</code>
+                    <span class="block-type block-command">Command</span>
+                    <p>Appends text to a file, creating it if missing.</p>
+                </div>
+                <div class="block-col">
+                    <code>list directory [PATH]</code>
+                    <span class="block-type block-reporter">Reporter</span>
+                    <p>Lists entries as a JSON array string ({name, isDir, size}).</p>
+                </div>
+                <div class="block-col">
+                    <code>exists [PATH]</code>
+                    <span class="block-type block-boolean">Boolean</span>
+                    <p>Reports true if the path exists.</p>
+                </div>
+                <div class="block-col">
+                    <code>delete [PATH]</code>
+                    <span class="block-type block-command">Command</span>
+                    <p>Deletes a file or an empty directory.</p>
+                </div>
+                <div class="block-col">
+                    <code>make directory [PATH]</code>
+                    <span class="block-type block-command">Command</span>
+                    <p>Recursively creates directories.</p>
+                </div>
+                <div class="block-col">
+                    <code>file size of [PATH]</code>
+                    <span class="block-type block-reporter">Reporter</span>
+                    <p>Returns the file size in bytes (0 on failure).</p>
+                </div>
+            </div>
+            <p>Example &mdash; a tiny auto-save:</p>
             <pre class="code-block"><code>when green flag clicked
 if &lt;exists [save.txt]&gt; then
-    set [content v] to (read [save.txt])      // reporter -&gt; file text
+    set [content v] to (read [save.txt])     // reporter -&gt; file text
     say (content)
 else
-    write [hello] into [save.txt]             // command, awaits completion
-    append [more lines] to [save.txt]
-end
-list directory [.]                             // -&gt; JSON array string
-file size of [save.txt]                        // -&gt; number</code></pre>
-            <p>Reporter/boolean blocks return their value directly to Scratch; command blocks (write/append/delete/makeDir) finish asynchronously and the next block runs after the operation completes. That is enough to build auto-save, level editors, asset loaders or text-based games that read and write real files on disk.</p>
+    write [hello] into [save.txt]            // command, awaits completion
+end</code></pre>
+            <p>Reporter and boolean blocks return their value directly to Scratch; command blocks finish asynchronously and the next block runs after the operation completes. That is enough to build auto-save, level editors, asset loaders or text-based games that read and write real files on disk.</p>
 
             <h2>Diagram &amp; Screenshots</h2>
             <figure class="guide-figure">
@@ -132,10 +167,14 @@ file size of [save.txt]                        // -&gt; number</code></pre>
             </ul>
 
             <h2>Downloads</h2>
+            <p>Release <strong>Java-js_Bridge-1.0-all</strong> (Latest). The zip contains the runnable jar <em>plus the complete <code>jcef-bundle</code> folder</em> (Chromium native libraries) &mdash; no runtime download needed:</p>
             <div class="project-links">
+                <a class="mock-link" href="https://github.com/RS6048/rs6048.github.io/releases/download/Projects_Turbowarp_Java-js_Bridge/Java-js_Bridge-1.0-all.zip" target="_blank" rel="noopener"><i class="fas fa-file-archive"></i> Java-js_Bridge-1.0-all.zip <span class="file-note">(jar + complete jcef-bundle folder &middot; 328 MB)</span></a>
+                <a class="mock-link" href="https://github.com/RS6048/rs6048.github.io/releases/download/Projects_Turbowarp_Java-js_Bridge/Java-js_Bridge-1.0-all.jar" target="_blank" rel="noopener"><i class="fas fa-file-archive"></i> Java-js_Bridge-1.0-all.jar <span class="file-note">(main runnable fat jar &middot; 171 MB)</span></a>
                 <a class="mock-link" href="extension.js" download><i class="fas fa-file-code"></i> extension.js <span class="file-note">(custom TurboWarp extension)</span></a>
-                <a class="mock-link" href="https://github.com/RS6048/rs6048.github.io/releases" target="_blank" rel="noopener"><i class="fas fa-download"></i> JCEF main files <span class="file-note">(release &mdash; coming soon)</span></a>
+                <a class="mock-link" href="https://github.com/RS6048/rs6048.github.io/releases/tag/Projects_Turbowarp_Java-js_Bridge" target="_blank" rel="noopener"><i class="fas fa-tag"></i> Release page <span class="file-note">(Java-js_Bridge-1.0-all &middot; Latest)</span></a>
             </div>
+            <p class="source-note">The <em>Source code</em> archives on the release page are auto-generated by GitHub and contain the raw repository files &mdash; use the assets above instead.</p>
         </div>
     </div>
 </body>
