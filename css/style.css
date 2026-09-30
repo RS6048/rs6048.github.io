@@ -476,6 +476,12 @@ a:hover {
     color: #d0e8f5;
     margin: 2rem 0 1rem;
 }
+.detail-content h3 {
+    font-size: 1.2rem;
+    font-weight: 500;
+    color: #b0d0e0;
+    margin: 1.5rem 0 0.6rem;
+}
 .detail-list {
     margin: 0 0 1.2rem 1.4rem;
     color: #c8dce8;
@@ -491,6 +497,54 @@ a:hover {
     padding: 0.1rem 0.4rem;
     border-radius: 4px;
     font-size: 0.9em;
+}
+
+/* Guide page: code blocks */
+pre.code-block {
+    background: #10263c;
+    border: 1px solid #1e3a5a;
+    border-radius: 8px;
+    padding: 1rem 1.2rem;
+    overflow-x: auto;
+    color: #b0e0ff;
+    font-size: 0.9rem;
+    line-height: 1.65;
+    margin: 0 0 1.2rem;
+    white-space: pre;
+}
+pre.code-block code {
+    background: transparent;
+    color: inherit;
+    padding: 0;
+}
+
+/* Guide page: action reference table */
+.action-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 0 0 1.5rem;
+    font-size: 0.9rem;
+    color: #c8dce8;
+}
+.action-table th,
+.action-table td {
+    text-align: left;
+    padding: 0.5rem 0.8rem;
+    border: 1px solid #1e3a5a;
+}
+.action-table th {
+    background: #1a3854;
+    color: #d0e8f5;
+    font-weight: 500;
+}
+.action-table td code {
+    background: #1a3854;
+    color: #b0e0ff;
+    padding: 0.05rem 0.3rem;
+    border-radius: 4px;
+}
+.action-table tr:nth-child(even) td {
+    background: #10263c;
 }
 
 /* Guide page: diagram */
@@ -612,5 +666,12 @@ a:hover {
         left: 1rem;
         font-size: 0.9rem;
         padding: 0.3rem 0.8rem;
+    }
+    .action-table {
+        font-size: 0.8rem;
+    }
+    .action-table th,
+    .action-table td {
+        padding: 0.4rem 0.5rem;
     }
 }
