@@ -547,6 +547,57 @@ pre.code-block code {
     background: #10263c;
 }
 
+/* Guide page: block reference columns (one column per block) */
+.block-columns {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.8rem;
+    margin: 0 0 1.2rem;
+}
+.block-col {
+    background: #10263c;
+    border: 1px solid #1e3a5a;
+    border-radius: 8px;
+    padding: 0.8rem 0.9rem;
+}
+.block-col code {
+    background: #1e3a5a;
+    color: #b0e0ff;
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.78rem;
+    display: inline-block;
+    margin-bottom: 0.4rem;
+    word-break: break-word;
+}
+.block-type {
+    display: inline-block;
+    font-size: 0.65rem;
+    padding: 0.1rem 0.5rem;
+    border-radius: 10px;
+    margin-bottom: 0.4rem;
+    border: 1px solid;
+    font-weight: 500;
+}
+.block-reporter {
+    color: #6bcb77;
+    border-color: #6bcb77;
+}
+.block-command {
+    color: #7ec8e3;
+    border-color: #7ec8e3;
+}
+.block-boolean {
+    color: #ffb347;
+    border-color: #ffb347;
+}
+.block-col p {
+    font-size: 0.8rem;
+    color: #c8dce8;
+    line-height: 1.5;
+    margin: 0;
+}
+
 /* Guide page: diagram */
 .guide-figure {
     margin: 0 0 1.5rem;
@@ -596,6 +647,12 @@ pre.code-block code {
 }
 .file-note {
     font-size: 0.8rem;
+    color: #6a8ca8;
+}
+
+/* Guide page: small annotation under a paragraph */
+.source-note {
+    font-size: 0.85rem;
     color: #6a8ca8;
 }
 
@@ -673,5 +730,14 @@ pre.code-block code {
     .action-table th,
     .action-table td {
         padding: 0.4rem 0.5rem;
+    }
+    .block-columns {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 480px) {
+    .block-columns {
+        grid-template-columns: 1fr;
     }
 }
