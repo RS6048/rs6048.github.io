@@ -522,7 +522,7 @@ pre.code-block code {
 .action-table {
     width: 100%;
     border-collapse: collapse;
-    margin: 0 0 1.5rem;
+    margin: 0 0 0.4rem;
     font-size: 0.9rem;
     color: #c8dce8;
 }
@@ -546,56 +546,10 @@ pre.code-block code {
 .action-table tr:nth-child(even) td {
     background: #10263c;
 }
-
-/* Guide page: block reference columns (one column per block) */
-.block-columns {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 0.8rem;
-    margin: 0 0 1.2rem;
-}
-.block-col {
-    background: #10263c;
-    border: 1px solid #1e3a5a;
-    border-radius: 8px;
-    padding: 0.8rem 0.9rem;
-}
-.block-col code {
-    background: #1e3a5a;
-    color: #b0e0ff;
-    padding: 0.15rem 0.4rem;
-    border-radius: 4px;
-    font-size: 0.78rem;
-    display: inline-block;
-    margin-bottom: 0.4rem;
-    word-break: break-word;
-}
-.block-type {
-    display: inline-block;
-    font-size: 0.65rem;
-    padding: 0.1rem 0.5rem;
-    border-radius: 10px;
-    margin-bottom: 0.4rem;
-    border: 1px solid;
-    font-weight: 500;
-}
-.block-reporter {
-    color: #6bcb77;
-    border-color: #6bcb77;
-}
-.block-command {
-    color: #7ec8e3;
-    border-color: #7ec8e3;
-}
-.block-boolean {
-    color: #ffb347;
-    border-color: #ffb347;
-}
-.block-col p {
-    font-size: 0.8rem;
-    color: #c8dce8;
-    line-height: 1.5;
-    margin: 0;
+.table-caption {
+    font-size: 0.85rem;
+    color: #6a8ca8;
+    margin: 0 0 1.5rem;
 }
 
 /* Guide page: diagram */
@@ -613,6 +567,146 @@ pre.code-block code {
     font-size: 0.8rem;
     color: #6a8ca8;
     margin-top: 0.4rem;
+}
+
+/* ----- Paper-style guide page (Java-js Bridge) ----- */
+.paper-page {
+    max-width: 780px;
+    font-family: Georgia, 'Times New Roman', serif;
+}
+.paper-page p {
+    font-family: inherit;
+    font-size: 1.05rem;
+    line-height: 1.9;
+    text-align: justify;
+}
+.paper-page h1,
+.paper-page h2,
+.paper-page h3 {
+    font-family: Georgia, 'Times New Roman', serif;
+}
+.paper-title {
+    font-size: 2rem;
+    font-weight: 400;
+    text-align: center;
+    margin: 0 auto 0.6rem;
+    max-width: 700px;
+}
+.paper-meta {
+    justify-content: center;
+    margin-bottom: 2rem;
+}
+.abstract {
+    font-style: italic;
+    border-left: 3px solid #7ec8e3;
+    padding: 0.8rem 1.2rem;
+    background: rgba(126, 200, 227, 0.06);
+    margin-bottom: 1.5rem;
+}
+.paper-figure {
+    text-align: center;
+    margin: 1.5rem 0;
+}
+.paper-figure img {
+    margin: 0 auto;
+}
+.paper-figure figcaption {
+    font-size: 0.85rem;
+    color: #6a8ca8;
+    margin-top: 0.5rem;
+    text-align: center;
+}
+.paper-figure figcaption code {
+    background: transparent;
+    color: #8fb8d0;
+    padding: 0;
+}
+
+/* Paper: block reference sections (one full-width bar per block) */
+.block-entry {
+    background: #10263c;
+    border: 1px solid #1e3a5a;
+    border-radius: 8px;
+    padding: 1rem 1.2rem;
+    margin: 0 0 1rem;
+}
+.block-entry-head {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+    margin-bottom: 0.5rem;
+}
+.block-id {
+    color: #6a8ca8;
+    font-size: 0.8rem;
+    font-style: italic;
+}
+.block-name {
+    background: #1e3a5a;
+    color: #b0e0ff;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.95rem;
+}
+.block-type {
+    display: inline-block;
+    font-size: 0.65rem;
+    padding: 0.1rem 0.5rem;
+    border-radius: 10px;
+    border: 1px solid;
+    font-weight: 500;
+}
+.block-reporter {
+    color: #6bcb77;
+    border-color: #6bcb77;
+}
+.block-command {
+    color: #7ec8e3;
+    border-color: #7ec8e3;
+}
+.block-boolean {
+    color: #ffb347;
+    border-color: #ffb347;
+}
+.block-desc {
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: #c8dce8;
+    margin: 0;
+    text-align: left;
+}
+.block-figure {
+    margin: 0.8rem 0 0;
+    text-align: center;
+}
+.block-figure img {
+    max-width: 100%;
+    border-radius: 6px;
+    border: 1px solid #1e3a5a;
+}
+.block-figure figcaption {
+    font-size: 0.8rem;
+    color: #6a8ca8;
+    margin-top: 0.3rem;
+    text-align: center;
+}
+.block-figure figcaption code {
+    background: transparent;
+    color: #8fb8d0;
+    padding: 0;
+}
+
+/* Paper: references */
+.refs {
+    margin: 0 0 1.2rem 1.4rem;
+    color: #b0c8d8;
+    font-size: 0.9rem;
+    line-height: 1.7;
+}
+.refs li {
+    margin-bottom: 0.3rem;
+    word-break: break-word;
 }
 
 /* Guide page: link list (mock links without navigation, real links with href) */
@@ -731,13 +825,7 @@ pre.code-block code {
     .action-table td {
         padding: 0.4rem 0.5rem;
     }
-    .block-columns {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-
-@media (max-width: 480px) {
-    .block-columns {
-        grid-template-columns: 1fr;
+    .paper-title {
+        font-size: 1.6rem;
     }
 }
