@@ -10,36 +10,41 @@
 <body>
     <div class="page-container">
         <a href="../" class="back-home"><i class="fas fa-arrow-left"></i> Back</a>
-        <div class="detail-content">
-            <h1>Java-js Bridge</h1>
-            <div class="project-status">
+        <div class="detail-content paper-page">
+            <h1 class="paper-title">Java-js Bridge: Local File Access for TurboWarp Projects via JCEF</h1>
+            <div class="project-status paper-meta">
                 <span class="status-tag status-ongoing"><i class="fas fa-circle-notch"></i> Ongoing</span>
-                <span class="update-tag"><i class="far fa-calendar"></i> Updated: 2026-09-30</span>
+                <span class="update-tag"><i class="far fa-calendar"></i> Updated: 2026-10-01</span>
             </div>
 
-            <p>This project solves a long-standing pain point of <strong>TurboWarp</strong> projects: direct access to local files. It embeds a TurboWarp project inside a <strong>JCEF</strong> (Java Chromium Embedded Framework) window and bridges it to the host filesystem through <code>window.cefQuery</code>, a message router, and an <strong>unsandboxed custom extension</strong>.</p>
+            <h2>Abstract</h2>
+            <p class="abstract">TurboWarp compiles Scratch projects into JavaScript and runs them inside a browser sandbox, which blocks direct access to the host filesystem. This paper describes <em>Java-js Bridge</em>, a desktop host built on the Java Chromium Embedded Framework (JCEF). It registers a message router that injects a JS&harr;Java bridge (<code>window.cefQuery</code>) into the embedded page, and exposes eight file-operation blocks to TurboWarp projects through an unsandboxed custom extension. The design, protocol, implementation and usage of the system are presented.</p>
 
-            <h2>The Problem</h2>
-            <p>TurboWarp compiles Scratch projects into fast JavaScript/WebAssembly and runs them inside an ordinary browser sandbox. Web security rules deliberately prevent a page from silently reading arbitrary files on the host machine:</p>
+            <h2>1. Introduction</h2>
+            <p>TurboWarp is an accelerated compiler for Scratch projects [4]. A compiled project behaves like a web page: it runs inside a sandbox, and web security rules deliberately prevent a page from silently reading arbitrary files on the host machine. Two ordinary approaches are unusable here:</p>
             <ul class="detail-list">
-                <li><code>fetch("file://...")</code> is blocked by browsers for security reasons.</li>
-                <li>The official File System Access API requires a user gesture and a file-picker dialog for <em>every single file</em>, which is unusable when a project wants to auto-load a whole folder of textures, sound banks or save data.</li>
+                <li><code>fetch("file://...")</code> is blocked by browsers.</li>
+                <li>The File System Access API requires a user gesture and a file-picker dialog for <em>every single file</em>, which is impractical for projects that need to auto-load whole folders of textures, sound banks or save data.</li>
             </ul>
-            <p>As a result, a TurboWarp project running locally still behaves like a website: no reliable access to the files next to it.</p>
+            <p>Consequently, a locally packaged TurboWarp project has no reliable way to touch the files next to it. The goal of this work is to restore that capability in a controlled manner.</p>
 
-            <h2>The Solution: JCEF + Custom Extension Bridge</h2>
-            <p>Instead of fighting the sandbox, this project replaces the browser itself. <strong>JCEF</strong> is the Java port of the Chromium Embedded Framework: it embeds a full Chromium browser inside a Swing application and lets the host register a <em>message router</em> that injects a JS&harr;Java bridge (<code>window.cefQuery</code>) into the page. A custom <strong>unsandboxed</strong> TurboWarp extension turns that bridge into Scratch blocks.</p>
-            <p>The bridge chain is: <em>Scratch block &rarr; extension.js &rarr; <code>window.cefQuery</code> &rarr; <code>CefMessageRouter</code> &rarr; <code>FileMessageRouterHandler</code> (Java) &rarr; local file</em>.</p>
+            <h2>2. Architecture</h2>
+            <p>The system replaces the browser itself. <strong>JCEF</strong> is the Java port of the Chromium Embedded Framework [3], embedding a full Chromium browser inside a Swing application. The host registers a <em>message router</em> (<code>CefMessageRouter</code>) that injects the JS&harr;Java bridge <code>window.cefQuery</code> into every page of the embedded browser [1]. A custom, unsandboxed TurboWarp extension exposes this bridge to Scratch in the form of blocks.</p>
+            <p>The bridge chain is: <em>Scratch block &rarr; extension.js &rarr; <code>window.cefQuery</code> &rarr; <code>CefMessageRouter</code> &rarr; <code>FileMessageRouterHandler</code> (Java) &rarr; local file</em>. The overall architecture is shown in Figure&nbsp;1.</p>
+            <figure class="paper-figure">
+                <img src="image_0.png" alt="System architecture of the Java-js Bridge" class="guide-image" />
+                <figcaption>Figure 1. System architecture of the Java-js Bridge. Requests flow downward from Scratch blocks to the local filesystem; results travel back up the same chain.</figcaption>
+            </figure>
 
-            <h2>The Bridge Protocol</h2>
-            <p>All communication is JSON over <code>window.cefQuery</code>:</p>
+            <h2>3. Bridge Protocol</h2>
+            <p>All communication between the page and the Java host is JSON transported over <code>window.cefQuery</code>. A request carries an action, a path and optional data; the host answers with a status flag and either the result or an error message, as shown below.</p>
             <pre class="code-block"><code>// Request (from the page to Java)
 { "action": "readFile", "path": "data.txt", "data": "hello" }
 
 // Response (from Java back to the page)
 { "ok": true,  "data": "file content..." }   // success
 { "ok": false, "error": "message" }          // failure</code></pre>
-            <p>Eight actions are implemented on the Java side:</p>
+            <p>Eight actions are supported (Table&nbsp;1).</p>
             <table class="action-table">
                 <tr><th>Action</th><th>Purpose</th><th>data (response)</th></tr>
                 <tr><td><code>readFile</code></td><td>Read a file</td><td>file content (UTF-8)</td></tr>
@@ -51,91 +56,168 @@
                 <tr><td><code>makeDir</code></td><td>Create directories recursively</td><td>empty</td></tr>
                 <tr><td><code>fileSize</code></td><td>File size in bytes</td><td>number string</td></tr>
             </table>
+            <p class="table-caption">Table 1. The eight actions implemented on the Java side.</p>
 
-            <h2>How It Works</h2>
-            <ol class="detail-list">
-                <li><strong>Host startup</strong> &mdash; <code>Main.java</code> initializes CEF through jcefmaven (<code>CefAppBuilder</code>, install dir <code>jcef-bundle</code>), keeps the GPU enabled (TurboWarp needs WebGL) and enables off-screen rendering (<code>windowless_rendering_enabled = true</code>) so the browser embeds cleanly into a Swing window.</li>
-                <li><strong>Bridge registration</strong> &mdash; a <code>CefMessageRouter</code> with <code>FileMessageRouterHandler</code> is attached to the client. From then on every page in the browser gets a <code>window.cefQuery</code> function.</li>
-                <li><strong>Project load</strong> &mdash; the app loads <code>Project.html</code> (a TurboWarp packager output) from <code>file:///</code>, and the project loads the custom <strong>Local File</strong> extension in unsandboxed mode.</li>
-                <li><strong>Block call</strong> &mdash; when a Scratch block like <code>read [PATH]</code> runs, <code>extension.js</code> builds a payload <code>{action, path, data}</code>, serializes it and calls <code>window.cefQuery(...)</code>, wrapped in a Promise.</li>
-                <li><strong>Java side</strong> &mdash; <code>onQuery</code> hands the request to a 4-thread executor (so the CEF UI thread is never blocked); <code>dispatch()</code> performs the file operation with <code>java.nio.file</code> and replies via <code>callback.success(json)</code>.</li>
-                <li><strong>Back to Scratch</strong> &mdash; the JSON response is parsed, <code>ok</code> is checked, and the value (or an error) resolves the Promise. Reporter blocks return the value; command blocks simply await completion.</li>
-            </ol>
+            <h2>4. Implementation</h2>
+            <p>The system consists of four components, described below.</p>
 
-            <h2>Components</h2>
-            <h3>Main.java &mdash; the JCEF host</h3>
+            <h3>4.1 Host Application (Main.java)</h3>
             <ul class="detail-list">
-                <li>Initializes <code>CefApp</code> via <code>CefAppBuilder</code>; native libraries ship as Gradle dependencies (no runtime download).</li>
-                <li><em>Never</em> disables the GPU: <code>--disable-gpu</code> stays commented out because TurboWarp projects rely on WebGL hardware acceleration.</li>
-                <li>Creates the message router and embeds the browser; mirrors the page title into the window via <code>CefDisplayHandlerAdapter.onTitleChange</code>.</li>
-                <li>Loads the project's favicon on a background thread (<code>FaviconLoader</code>) and sets it as the frame icon &mdash; without blocking the UI.</li>
-                <li>On window close: <code>browser.close(true)</code> and <code>cefApp.dispose()</code> release all native resources.</li>
+                <li>Initializes <code>CefApp</code> via jcefmaven's <code>CefAppBuilder</code> with install directory <code>jcef-bundle</code>; native libraries ship as Gradle dependencies, so no runtime download is required.</li>
+                <li>Keeps the GPU enabled &mdash; <code>--disable-gpu</code> must stay commented out because TurboWarp projects rely on WebGL hardware acceleration.</li>
+                <li>Enables off-screen rendering (<code>windowless_rendering_enabled = true</code>) so the browser embeds cleanly into a Swing window.</li>
+                <li>Attaches the <code>CefMessageRouter</code> with the file handler to the client, loads <code>Project.html</code> (the TurboWarp packager output) from <code>file:///</code>, and mirrors the page title into the window via <code>CefDisplayHandlerAdapter.onTitleChange</code>.</li>
+                <li>Loads the project's favicon on a background thread and sets it as the frame icon; on window close, <code>browser.close(true)</code> and <code>cefApp.dispose()</code> release all native resources.</li>
             </ul>
-            <h3>FileMessageRouterHandler.java &mdash; the Java bridge</h3>
+
+            <h3>4.2 Message Router Handler (FileMessageRouterHandler.java)</h3>
             <ul class="detail-list">
                 <li>Extends <code>CefMessageRouterHandlerAdapter</code>; <code>onQuery</code> parses the JSON request and dispatches by action.</li>
                 <li>All operations use <code>java.nio.file</code> (<code>Files.readAllBytes</code>, <code>Files.write</code>, <code>Files.createDirectories</code>, <code>Files.list</code>, <code>Files.deleteIfExists</code>, <code>Files.size</code>).</li>
+                <li>Requests are executed on a 4-thread executor so the CEF UI thread is never blocked; <code>CefQueryCallback.success</code> is thread-safe.</li>
                 <li>Errors are caught and returned as <code>{"ok":false,"error":...}</code> instead of crashing the page.</li>
-                <li>Security: <code>ROOT_LIMIT</code> is <code>null</code> by default (same permissions as the current user). When set, every path is normalized and checked with <code>startsWith</code>, which blocks <code>../</code> traversal outside the allowed root.</li>
             </ul>
-            <h3>extension.js &mdash; the TurboWarp extension (&ldquo;Local File&rdquo;)</h3>
+
+            <h3>4.3 TurboWarp Extension (extension.js)</h3>
             <ul class="detail-list">
                 <li>Requires the extension sandbox to be disabled: it throws <code>"Run it unsandbox!!!"</code> otherwise, because only unsandboxed extensions may touch <code>window.cefQuery</code>.</li>
                 <li><code>callJava(payload)</code> wraps <code>window.cefQuery</code> into a Promise; <code>exec(action, path, data)</code> builds the payload, checks <code>ok</code> and returns <code>data</code>.</li>
-                <li>Exposes eight Scratch blocks (green &ldquo;Local File&rdquo; category): read / write / append / list directory / exists / delete / make directory / file size.</li>
-            </ul>
-            <h3>FaviconLoader.java &mdash; the finishing touch</h3>
-            <ul class="detail-list">
-                <li>Scans <code>Project.html</code> for <code>&lt;link rel="..."&gt;</code> icons with priority <em>apple-touch-icon &gt; shortcut icon &gt; icon</em>.</li>
-                <li>Handles relative/absolute file paths, http(s) URLs and <code>data:</code> URIs; decodes PNG/JPEG/GIF/BMP and ICO files with embedded PNGs (SVG is skipped).</li>
-                <li>Enforces a 2&nbsp;MB limit so a broken icon can never stall the window; any failure silently returns <code>null</code>.</li>
+                <li>Exposes the green <em>Local File</em> category with eight blocks, detailed in Section&nbsp;5.2.</li>
             </ul>
 
-            <h2>Usage</h2>
-            <p>Three steps: (1)&nbsp;run the host app with <code>Project.html</code> (TurboWarp packager output) next to it; (2)&nbsp;load the <em>Local File</em> extension (<code>extension.js</code>) in <strong>unsandboxed</strong> mode &mdash; it refuses to start otherwise; (3)&nbsp;build blocks. Each block is one column below:</p>
-            <div class="block-columns">
-                <div class="block-col">
-                    <code>read [PATH]</code>
+            <h3>4.4 Favicon Loading (FaviconLoader.java)</h3>
+            <ul class="detail-list">
+                <li>Scans the HTML for <code>&lt;link rel="..."&gt;</code> icons with priority <em>apple-touch-icon &gt; shortcut icon &gt; icon</em>.</li>
+                <li>Handles relative/absolute file paths, http(s) URLs and <code>data:</code> URIs; decodes PNG/JPEG/GIF/BMP and ICO files with embedded PNGs (SVG is skipped).</li>
+                <li>Enforces a 2&nbsp;MB limit; any failure silently returns <code>null</code>.</li>
+            </ul>
+
+            <h2>5. Usage</h2>
+            <h3>5.1 Setup</h3>
+            <ol class="detail-list">
+                <li>Place <code>Project.html</code> (the TurboWarp packager output) next to the application and start it. A Swing window opens with the project inside an embedded Chromium.</li>
+                <li>In the project, load the <em>Local File</em> extension in unsandboxed mode &mdash; it refuses to start otherwise.</li>
+                <li>Build blocks from the <em>Local File</em> palette.</li>
+            </ol>
+            <p>Figure&nbsp;2 shows the extension being loaded in the editor, and Figure&nbsp;3 shows the running application window.</p>
+            <figure class="paper-figure">
+                <img src="image_1.png" alt="Loading the Local File extension in the TurboWarp editor" class="guide-image" />
+                <figcaption>Figure 2. Loading the Local File extension in unsandboxed mode inside the TurboWarp editor.</figcaption>
+            </figure>
+            <figure class="paper-figure">
+                <img src="image_2.png" alt="The running application window" class="guide-image" />
+                <figcaption>Figure 3. The application in operation: embedded project, favicon as the window icon, and file content read from disk.</figcaption>
+            </figure>
+
+            <h3>5.2 Block Reference</h3>
+            <p>Each block is presented in its own subsection, with a demonstration shown as a short animation.</p>
+
+            <section class="block-entry">
+                <header class="block-entry-head">
+                    <span class="block-id">5.2.1</span>
+                    <code class="block-name">read [PATH]</code>
                     <span class="block-type block-reporter">Reporter</span>
-                    <p>Returns the file content as text (UTF-8).</p>
-                </div>
-                <div class="block-col">
-                    <code>write [DATA] into [PATH]</code>
+                </header>
+                <p class="block-desc">Reads a file and returns its content as a UTF-8 string. Suitable for loading text assets, configuration files or save data.</p>
+                <figure class="block-figure">
+                    <img src="image_3.gif" alt="Demonstration of the read block" />
+                    <figcaption>Figure 4. Demonstration of the <code>read</code> block.</figcaption>
+                </figure>
+            </section>
+
+            <section class="block-entry">
+                <header class="block-entry-head">
+                    <span class="block-id">5.2.2</span>
+                    <code class="block-name">write [DATA] into [PATH]</code>
                     <span class="block-type block-command">Command</span>
-                    <p>Overwrites a file, creating parent folders first.</p>
-                </div>
-                <div class="block-col">
-                    <code>append [DATA] to [PATH]</code>
+                </header>
+                <p class="block-desc">Overwrites a file with the given data, creating parent directories as needed.</p>
+                <figure class="block-figure">
+                    <img src="image_4.gif" alt="Demonstration of the write block" />
+                    <figcaption>Figure 5. Demonstration of the <code>write</code> block.</figcaption>
+                </figure>
+            </section>
+
+            <section class="block-entry">
+                <header class="block-entry-head">
+                    <span class="block-id">5.2.3</span>
+                    <code class="block-name">append [DATA] to [PATH]</code>
                     <span class="block-type block-command">Command</span>
-                    <p>Appends text to a file, creating it if missing.</p>
-                </div>
-                <div class="block-col">
-                    <code>list directory [PATH]</code>
+                </header>
+                <p class="block-desc">Appends text to a file, creating it if it does not exist.</p>
+                <figure class="block-figure">
+                    <img src="image_5.gif" alt="Demonstration of the append block" />
+                    <figcaption>Figure 6. Demonstration of the <code>append</code> block.</figcaption>
+                </figure>
+            </section>
+
+            <section class="block-entry">
+                <header class="block-entry-head">
+                    <span class="block-id">5.2.4</span>
+                    <code class="block-name">list directory [PATH]</code>
                     <span class="block-type block-reporter">Reporter</span>
-                    <p>Lists entries as a JSON array string ({name, isDir, size}).</p>
-                </div>
-                <div class="block-col">
-                    <code>exists [PATH]</code>
+                </header>
+                <p class="block-desc">Lists the entries of a directory as a JSON array string, each item carrying <code>name</code>, <code>isDir</code> and <code>size</code>.</p>
+                <figure class="block-figure">
+                    <img src="image_6.gif" alt="Demonstration of the list directory block" />
+                    <figcaption>Figure 7. Demonstration of the <code>list directory</code> block.</figcaption>
+                </figure>
+            </section>
+
+            <section class="block-entry">
+                <header class="block-entry-head">
+                    <span class="block-id">5.2.5</span>
+                    <code class="block-name">exists [PATH]</code>
                     <span class="block-type block-boolean">Boolean</span>
-                    <p>Reports true if the path exists.</p>
-                </div>
-                <div class="block-col">
-                    <code>delete [PATH]</code>
+                </header>
+                <p class="block-desc">Reports whether the given path exists.</p>
+                <figure class="block-figure">
+                    <img src="image_7.gif" alt="Demonstration of the exists block" />
+                    <figcaption>Figure 8. Demonstration of the <code>exists</code> block.</figcaption>
+                </figure>
+            </section>
+
+            <section class="block-entry">
+                <header class="block-entry-head">
+                    <span class="block-id">5.2.6</span>
+                    <code class="block-name">delete [PATH]</code>
                     <span class="block-type block-command">Command</span>
-                    <p>Deletes a file or an empty directory.</p>
-                </div>
-                <div class="block-col">
-                    <code>make directory [PATH]</code>
+                </header>
+                <p class="block-desc">Deletes a file or an empty directory.</p>
+                <figure class="block-figure">
+                    <img src="image_8.gif" alt="Demonstration of the delete block" />
+                    <figcaption>Figure 9. Demonstration of the <code>delete</code> block.</figcaption>
+                </figure>
+            </section>
+
+            <section class="block-entry">
+                <header class="block-entry-head">
+                    <span class="block-id">5.2.7</span>
+                    <code class="block-name">make directory [PATH]</code>
                     <span class="block-type block-command">Command</span>
-                    <p>Recursively creates directories.</p>
-                </div>
-                <div class="block-col">
-                    <code>file size of [PATH]</code>
+                </header>
+                <p class="block-desc">Recursively creates directories.</p>
+                <figure class="block-figure">
+                    <img src="image_9.gif" alt="Demonstration of the make directory block" />
+                    <figcaption>Figure 10. Demonstration of the <code>make directory</code> block.</figcaption>
+                </figure>
+            </section>
+
+            <section class="block-entry">
+                <header class="block-entry-head">
+                    <span class="block-id">5.2.8</span>
+                    <code class="block-name">file size of [PATH]</code>
                     <span class="block-type block-reporter">Reporter</span>
-                    <p>Returns the file size in bytes (0 on failure).</p>
-                </div>
-            </div>
-            <p>Example &mdash; a tiny auto-save:</p>
+                </header>
+                <p class="block-desc">Returns the file size in bytes, or 0 on failure.</p>
+                <figure class="block-figure">
+                    <img src="image_10.gif" alt="Demonstration of the file size block" />
+                    <figcaption>Figure 11. Demonstration of the <code>file size</code> block.</figcaption>
+                </figure>
+            </section>
+
+            <h3>5.3 Example</h3>
+            <p>A minimal auto-save routine combining the blocks above:</p>
             <pre class="code-block"><code>when green flag clicked
 if &lt;exists [save.txt]&gt; then
     set [content v] to (read [save.txt])     // reporter -&gt; file text
@@ -143,38 +225,35 @@ if &lt;exists [save.txt]&gt; then
 else
     write [hello] into [save.txt]            // command, awaits completion
 end</code></pre>
-            <p>Reporter and boolean blocks return their value directly to Scratch; command blocks finish asynchronously and the next block runs after the operation completes. That is enough to build auto-save, level editors, asset loaders or text-based games that read and write real files on disk.</p>
+            <p>Reporter and boolean blocks return their value directly to Scratch; command blocks finish asynchronously and the next block runs after the operation completes. This is sufficient to build auto-save, level editors, asset loaders or text-based games that read and write real files on disk.</p>
 
-            <h2>Diagram &amp; Screenshots</h2>
-            <figure class="guide-figure">
-                <img src="image_0.png" alt="Java-js Bridge architecture diagram" class="guide-image" />
-                <figcaption>image_0.png &mdash; Architecture: Scratch blocks &rarr; extension.js &rarr; window.cefQuery &rarr; CefMessageRouter &rarr; FileMessageRouterHandler (Java) &rarr; local files.</figcaption>
-            </figure>
-            <figure class="guide-figure">
-                <img src="image_1.png" alt="Editor usage example" class="guide-image" />
-                <figcaption>image_1.png &mdash; Usage example: loading the Local File extension (unsandboxed) in the TurboWarp editor and building the read/write blocks above.</figcaption>
-            </figure>
-            <figure class="guide-figure">
-                <img src="image_2.png" alt="Running window screenshot" class="guide-image" />
-                <figcaption>image_2.png &mdash; The app in action: a Swing window with the embedded project, its favicon as the window icon and the file content read from disk.</figcaption>
-            </figure>
-
-            <h2>Security Notes</h2>
+            <h2>6. Security Considerations</h2>
             <ul class="detail-list">
-                <li>The unsandboxed extension runs with the same permissions as the current user &mdash; the bridge is a powerful tool and should only be enabled for projects you trust (a historical TurboWarp Desktop bug, CVE-2023-40168, allowed a malicious project to exfiltrate arbitrary files).</li>
+                <li>The unsandboxed extension runs with the same permissions as the current user. A historical TurboWarp Desktop bug (CVE-2023-40168 [6]) allowed a malicious project to exfiltrate arbitrary files, so this bridge should only be enabled for trusted projects.</li>
                 <li>For untrusted projects, set <code>ROOT_LIMIT</code> in <code>FileMessageRouterHandler</code> to an allow-listed directory; paths are normalized and prefix-checked, blocking <code>../</code> traversal.</li>
-                <li>Never load unknown projects or unknown extensions into this app.</li>
+                <li>Never load unknown projects or unknown extensions into this application.</li>
             </ul>
 
-            <h2>Downloads</h2>
-            <p>Release <strong>Java-js_Bridge-1.0-all</strong> (Latest). The zip contains the runnable jar <em>plus the complete <code>jcef-bundle</code> folder</em> (Chromium native libraries) &mdash; no runtime download needed:</p>
+            <h2>7. Availability &amp; Downloads</h2>
+            <p>The release <strong>Java-js_Bridge-1.0-all</strong> provides two assets: a runnable fat jar, and a zip archive that contains the jar <em>plus the complete <code>jcef-bundle</code> folder</em> (Chromium native libraries), enabling an offline, out-of-the-box setup.</p>
             <div class="project-links">
-                <a class="mock-link" href="https://github.com/RS6048/rs6048.github.io/releases/download/Projects_Turbowarp_Java-js_Bridge/Java-js_Bridge-1.0-all.zip" target="_blank" rel="noopener"><i class="fas fa-file-archive"></i> Java-js_Bridge-1.0-all.zip <span class="file-note">(jar + complete jcef-bundle folder &middot; 328 MB)</span></a>
-                <a class="mock-link" href="https://github.com/RS6048/rs6048.github.io/releases/download/Projects_Turbowarp_Java-js_Bridge/Java-js_Bridge-1.0-all.jar" target="_blank" rel="noopener"><i class="fas fa-file-archive"></i> Java-js_Bridge-1.0-all.jar <span class="file-note">(main runnable fat jar &middot; 171 MB)</span></a>
+                <a class="mock-link" href="https://github.com/RS6048/rs6048.github.io/releases/download/Projects_Turbowarp_Java-js_Bridge/Java-js_Bridge-1.0-all.zip" target="_blank" rel="noopener"><i class="fas fa-file-archive"></i> Java-js_Bridge-1.0-all.zip <span class="file-note">(jar + complete jcef-bundle folder)</span></a>
+                <a class="mock-link" href="https://github.com/RS6048/rs6048.github.io/releases/download/Projects_Turbowarp_Java-js_Bridge/Java-js_Bridge-1.0-all.jar" target="_blank" rel="noopener"><i class="fas fa-file-archive"></i> Java-js_Bridge-1.0-all.jar <span class="file-note">(main runnable fat jar)</span></a>
                 <a class="mock-link" href="extension.js" download><i class="fas fa-file-code"></i> extension.js <span class="file-note">(custom TurboWarp extension)</span></a>
                 <a class="mock-link" href="https://github.com/RS6048/rs6048.github.io/releases/tag/Projects_Turbowarp_Java-js_Bridge" target="_blank" rel="noopener"><i class="fas fa-tag"></i> Release page <span class="file-note">(Java-js_Bridge-1.0-all &middot; Latest)</span></a>
             </div>
             <p class="source-note">The <em>Source code</em> archives on the release page are auto-generated by GitHub and contain the raw repository files &mdash; use the assets above instead.</p>
+
+            <h2>References</h2>
+            <ol class="refs">
+                <li>Chromium Embedded Framework &mdash; <em>JavaScript Integration</em>. https://chromiumembedded.github.io/cef/javascript_integration.html</li>
+                <li>Chromium Embedded Framework &mdash; <em>Hands-On Tutorial</em> (custom schemes and message routing). https://chromiumembedded.github.io/cef/hands_on_tutorial.html</li>
+                <li>Java Chromium Embedded Framework (JCEF). https://chromiumembedded.github.io/java-cef/</li>
+                <li>TurboWarp Desktop. https://desktop.turbowarp.org/</li>
+                <li>TurboWarp Extension Gallery. https://extensions.turbowarp.org/</li>
+                <li>NVD &mdash; CVE-2023-40168 (TurboWarp Desktop arbitrary file read). https://nvd.nist.gov/vuln/detail/CVE-2023-40168</li>
+                <li>JetBrains &mdash; <em>Embedded Browser (JCEF)</em>. https://plugins.jetbrains.com/docs/intellij/embedded-browser-jcef.html</li>
+            </ol>
         </div>
     </div>
 </body>
