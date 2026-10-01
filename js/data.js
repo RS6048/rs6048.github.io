@@ -13,7 +13,7 @@ const projectsData = [
         description: 'Bridging TurboWarp projects to local files with JCEF and a custom extension.',
         folder: 'Turbowarp/Java-js_Bridge',
         tags: ['Ongoing'],
-        lastUpdate: '2026-09-30',
+        lastUpdate: '2026-10-01',
         detail: 'A JCEF-based bridge that lets TurboWarp projects access local files through a custom extension.'
     }
 ];
