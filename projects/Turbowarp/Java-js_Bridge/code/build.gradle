@@ -1,0 +1,63 @@
+plugins {
+    id 'java'
+    id 'application'
+    // fat jar 打包：单文件可运行 jar
+    id 'com.gradleup.shadow' version '9.6.1'
+}
+
+group = 'code.rs6048'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    // 国内镜像优先，加速依赖下载
+    maven { url 'https://maven.aliyun.com/repository/central' }
+    maven { url 'https://mirrors.cloud.tencent.com/nexus/repository/maven-public/' }
+    mavenCentral()
+}
+
+dependencies {
+    // JCEF (Java Chromium Embedded Framework) — 基于 Chromium，完整支持 WebGL
+    implementation 'me.friwi:jcefmaven:146.0.10'
+    // Windows AMD64 原生库（约100MB）——构建时从国内 Maven 镜像下载，运行时零下载
+    implementation 'me.friwi:jcef-natives-windows-amd64:jcef-d3de827+cef-146.0.10+g8219561+chromium-146.0.7680.179'
+    // JSON 解析，用于 JS-Java 文件互通协议
+    implementation 'org.json:json:20240303'
+
+    testImplementation platform('org.junit:junit-bom:5.10.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+test {
+    useJUnitPlatform()
+}
+
+application {
+    mainClass = 'code.rs6048.Main'
+
+    // JDK 16+ 运行 JCEF / JOGL 所需的模块开放参数
+    applicationDefaultJvmArgs = [
+        '--add-exports', 'java.base/java.lang=ALL-UNNAMED',
+        '--add-exports', 'java.desktop/sun.awt=ALL-UNNAMED',
+        '--add-exports', 'java.desktop/sun.java2d=ALL-UNNAMED',
+        '--add-opens', 'java.desktop/sun.awt=ALL-UNNAMED',
+        '--add-opens', 'java.desktop/sun.lwawt=ALL-UNNAMED',
+        '--add-opens', 'java.desktop/sun.lwawt.macosx=ALL-UNNAMED'
+    ]
+}
+
+// ── 可执行 fat jar（shadow）：单文件分发 ──
+// jcefmaven 运行时优先从 classpath 提取原生库（PackageClasspathStreamer，
+// 见 CefAppBuilder.install()），因此 fat jar 合并 natives jar 后无需联网下载。
+shadowJar {
+    archiveClassifier = 'all'
+    mergeServiceFiles()
+    manifest {
+        attributes 'Main-Class': 'code.rs6048.Main'
+    }
+}
+
+// gradlew build 一并产出 fat jar
+tasks.named('build') {
+    dependsOn 'shadowJar'
+}
