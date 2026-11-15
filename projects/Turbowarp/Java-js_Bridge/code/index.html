@@ -17,7 +17,7 @@
                 <span class="update-tag"><i class="far fa-calendar"></i> Updated: 2026-11-15</span>
             </div>
 
-            <p>The complete source of the desktop host described in the paper: the Swing/JCEF host, the message-router handler that implements the bridge protocol, the favicon pre-reader, the unsandboxed TurboWarp extension, and the two Gradle build scripts. These files are the state that produced the measurements in Section&nbsp;4.5 and Section&nbsp;4.6 of the paper &mdash; the quartile of the window layer including the fixed-size policy.</p>
+            <p>The complete source of the desktop host described in the paper: the Swing/JCEF host, the message-router handler that implements the bridge protocol, the favicon pre-reader, the unsandboxed TurboWarp extension, and the two Gradle build scripts. These files are the state that produced the measurements in Section&nbsp;4.5 and Section&nbsp;4.6 of the paper &mdash; the window layer, including the fixed-size policy.</p>
 
             <h2>Repository Layout</h2>
             <pre class="code-block"><code>WebGUI/
@@ -89,6 +89,7 @@ build/libs/WebGUI-1.0-SNAPSHOT-all.jar</code></pre>
             <ul class="detail-list">
                 <li><code>Main.java</code> is kept with CRLF in the local working tree and stored here with LF; apart from the line terminators the text is byte-identical. Every other file is byte-identical, including <code>extension.js</code> and the Gradle scripts.</li>
                 <li>Nothing here is minified or rewritten for the web. The files are the ones that were compiled and measured, comments included &mdash; that is why the <code>[GEOM]</code> and <code>[FORCERESIZE]</code> diagnostics described in Section&nbsp;4.6 are present in <code>Main.java</code>.</li>
+                <li>All files are UTF-8 without a byte-order mark. The <code>.java</code> files are served as <code>text/x-java-source</code> without a charset, so a browser that guesses the encoding may show the Chinese comments as mojibake; use the <em>view</em> link for a correctly decoded copy.</li>
                 <li>The binary assets on the release page were built separately; if you enable or change the window layer yourself, rebuild rather than mix these sources with an older jar.</li>
             </ul>
 
