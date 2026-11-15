@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>RS6048 | Java-js Bridge &mdash; Source Code</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <link rel="stylesheet" href="../../../../css/style.css" />
+</head>
+<body>
+    <div class="page-container">
+        <a href="../" class="back-home"><i class="fas fa-arrow-left"></i> Back to the paper</a>
+        <div class="detail-content paper-page">
+            <h1 class="paper-title">Source Code: Java-js Bridge</h1>
+            <div class="project-status paper-meta">
+                <span class="status-tag status-ongoing"><i class="fas fa-code"></i> Source</span>
+                <span class="update-tag"><i class="far fa-calendar"></i> Updated: 2026-11-15</span>
+            </div>
+
+            <p>The complete source of the desktop host described in the paper: the Swing/JCEF host, the message-router handler that implements the bridge protocol, the favicon pre-reader, the unsandboxed TurboWarp extension, and the two Gradle build scripts. These files are the state that produced the measurements in Section&nbsp;4.5 and Section&nbsp;4.6 of the paper &mdash; the quartile of the window layer including the fixed-size policy.</p>
+
+            <h2>Repository Layout</h2>
+            <pre class="code-block"><code>WebGUI/
+├─ build.gradle                        Gradle build; fat jar via shadowJar
+├─ settings.gradle
+├─ extensions/
+│  └─ extension.js                     TurboWarp extension: the eight Local File blocks
+└─ src/main/java/code/rs6048/
+   ├─ Main.java                        host: CLI flags, window layer, JCEF/OSR, probes
+   ├─ FileMessageRouterHandler.java    bridge: JSON over cefQuery, java.nio.file
+   └─ FaviconLoader.java               pure-Java favicon pre-reader (PNG/ICO, alpha kept)</code></pre>
+
+            <h2>Files</h2>
+            <table class="action-table">
+                <tr><th>File</th><th>Lines</th><th>Bytes</th><th>Role</th><th>Get it</th></tr>
+                <tr>
+                    <td><code>Main.java</code></td><td>629</td><td>28,406</td>
+                    <td>Entry point. Parses the named flags, resolves the window size, pins <code>sun.java2d.uiScale=1.0</code>, opens the window non-resizable, drives the OSR browser, keeps the <code>[GEOM]</code> self-check.</td>
+                    <td><a href="Main.java" download>download</a> &middot; <a href="https://github.com/RS6048/rs6048.github.io/blob/main/projects/Turbowarp/Java-js_Bridge/code/Main.java" target="_blank" rel="noopener">view</a></td>
+                </tr>
+                <tr>
+                    <td><code>FileMessageRouterHandler.java</code></td><td>207</td><td>9,104</td>
+                    <td>The eight file actions plus the two internal ones (<code>__setWindowIcon</code>, <code>__setContentSize</code>); runs on a 4-thread executor; optional <code>ROOT_LIMIT</code>.</td>
+                    <td><a href="FileMessageRouterHandler.java" download>download</a> &middot; <a href="https://github.com/RS6048/rs6048.github.io/blob/main/projects/Turbowarp/Java-js_Bridge/code/FileMessageRouterHandler.java" target="_blank" rel="noopener">view</a></td>
+                </tr>
+                <tr>
+                    <td><code>FaviconLoader.java</code></td><td>233</td><td>8,705</td>
+                    <td>Reads <code>&lt;link rel="icon"&gt;</code> from the HTML, handles file/http/data URIs, decodes ICO with embedded PNG; never flattens the alpha channel; SVG passes through to the canvas fallback.</td>
+                    <td><a href="FaviconLoader.java" download>download</a> &middot; <a href="https://github.com/RS6048/rs6048.github.io/blob/main/projects/Turbowarp/Java-js_Bridge/code/FaviconLoader.java" target="_blank" rel="noopener">view</a></td>
+                </tr>
+                <tr>
+                    <td><code>extension.js</code></td><td>151</td><td>4,441</td>
+                    <td>Unsandboxed TurboWarp extension. Wraps <code>window.cefQuery</code> in a Promise and exposes the green <em>Local File</em> palette.</td>
+                    <td><a href="extension.js" download>download</a> &middot; <a href="https://github.com/RS6048/rs6048.github.io/blob/main/projects/Turbowarp/Java-js_Bridge/code/extension.js" target="_blank" rel="noopener">view</a></td>
+                </tr>
+                <tr>
+                    <td><code>build.gradle</code></td><td>63</td><td>2,124</td>
+                    <td>jcefmaven 146.0.10 + Windows AMD64 natives, <code>org.json</code>, the shadow plugin and the JVM flags that JOGL needs.</td>
+                    <td><a href="build.gradle" download>download</a> &middot; <a href="https://github.com/RS6048/rs6048.github.io/blob/main/projects/Turbowarp/Java-js_Bridge/code/build.gradle" target="_blank" rel="noopener">view</a></td>
+                </tr>
+                <tr>
+                    <td><code>settings.gradle</code></td><td>1</td><td>27</td>
+                    <td>Project name (<code>WebGUI</code>), which names the jar.</td>
+                    <td><a href="settings.gradle" download>download</a> &middot; <a href="https://github.com/RS6048/rs6048.github.io/blob/main/projects/Turbowarp/Java-js_Bridge/code/settings.gradle" target="_blank" rel="noopener">view</a></td>
+                </tr>
+            </table>
+            <p class="table-caption">Table S1. The six source files, 1,284 lines and 52,807 bytes in total. Sizes are the byte counts of the repository copies. <em>View</em> opens the file on GitHub, where it is syntax-highlighted; <em>download</em> serves the raw file.</p>
+
+            <h2>Building</h2>
+            <p>The project is built with Gradle and the Shadow plugin, producing a single runnable fat jar with the native jcefmaven libraries merged in. No runtime download is needed afterwards, but the resulting jar is large (about 171&nbsp;MB) because it carries the whole Chromium build.</p>
+            <pre class="code-block"><code># JDK 21 is required (the classes are compiled for class file version 65)
+gradle shadowJar
+
+# output
+build/libs/WebGUI-1.0-SNAPSHOT-all.jar</code></pre>
+            <p>Dependencies are taken from an Aliyun / Tencent Cloud mirror first and Maven Central second (see the <code>repositories</code> block), which is what makes the jcefmaven natives available behind a slow direct connection to Maven Central.</p>
+
+            <h2>Running</h2>
+            <p>The same JVM flags as in Section&nbsp;5.1 are mandatory, because JOGL reaches into JDK-internal AWT packages. Adjust the window with the named flags of Table&nbsp;3 &mdash; any order, <code>-flag value</code> or <code>-flag=value</code>:</p>
+            <pre class="code-block"><code>java \
+  --add-exports java.base/java.lang=ALL-UNNAMED \
+  --add-exports java.desktop/sun.awt=ALL-UNNAMED \
+  --add-exports java.desktop/sun.java2d=ALL-UNNAMED \
+  --add-opens java.desktop/sun.awt=ALL-UNNAMED \
+  -jar WebGUI-1.0-SNAPSHOT-all.jar -html Project.html -y 700 -x 1000</code></pre>
+            <p>The working directory matters: <code>jcef-bundle</code>, the HTML file and the paths the project passes to the blocks are all resolved relative to it.</p>
+
+            <h2>Notes on these copies</h2>
+            <ul class="detail-list">
+                <li><code>Main.java</code> is kept with CRLF in the local working tree and stored here with LF; apart from the line terminators the text is byte-identical. Every other file is byte-identical, including <code>extension.js</code> and the Gradle scripts.</li>
+                <li>Nothing here is minified or rewritten for the web. The files are the ones that were compiled and measured, comments included &mdash; that is why the <code>[GEOM]</code> and <code>[FORCERESIZE]</code> diagnostics described in Section&nbsp;4.6 are present in <code>Main.java</code>.</li>
+                <li>The binary assets on the release page were built separately; if you enable or change the window layer yourself, rebuild rather than mix these sources with an older jar.</li>
+            </ul>
+
+            <h2>Links</h2>
+            <div class="project-links">
+                <a class="mock-link" href="../"><i class="fas fa-book-open"></i> The paper <span class="file-note">(architecture, protocol, measurements)</span></a>
+                <a class="mock-link" href="../extension.js" download><i class="fas fa-file-code"></i> extension.js <span class="file-note">(as shipped with the release)</span></a>
+                <a class="mock-link" href="../run.bat" download><i class="fas fa-terminal"></i> run.bat <span class="file-note">(Windows launcher)</span></a>
+                <a class="mock-link" href="../run.sh" download><i class="fas fa-terminal"></i> run.sh <span class="file-note">(Linux / macOS launcher)</span></a>
+            </div>
+            <p class="source-note">These files are published for reading. The bridge runs unsandboxed with the permissions of the current user &mdash; review Section&nbsp;6 of the paper before pointing it at anything you care about.</p>
+        </div>
+    </div>
+</body>
+</html>
