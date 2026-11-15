@@ -14,11 +14,11 @@
             <h1 class="paper-title">Java-js Bridge: Local File Access for TurboWarp Projects via JCEF</h1>
             <div class="project-status paper-meta">
                 <span class="status-tag status-ongoing"><i class="fas fa-circle-notch"></i> Ongoing</span>
-                <span class="update-tag"><i class="far fa-calendar"></i> Updated: 2026-10-01</span>
+                <span class="update-tag"><i class="far fa-calendar"></i> Updated: 2026-11-15</span>
             </div>
 
             <h2>Abstract</h2>
-            <p class="abstract">TurboWarp compiles Scratch projects into JavaScript and runs them inside a browser sandbox, which blocks direct access to the host filesystem. This paper describes <em>Java-js Bridge</em>, a desktop host built on the Java Chromium Embedded Framework (JCEF). It registers a message router that injects a JS&harr;Java bridge (<code>window.cefQuery</code>) into the embedded page, and exposes eight file-operation blocks to TurboWarp projects through an unsandboxed custom extension. The design, protocol, implementation and usage of the system are presented.</p>
+            <p class="abstract">TurboWarp compiles Scratch projects into JavaScript and runs them inside a browser sandbox, which blocks direct access to the host filesystem. This paper describes <em>Java-js Bridge</em>, a desktop host built on the Java Chromium Embedded Framework (JCEF). It registers a message router that injects a JS&harr;Java bridge (<code>window.cefQuery</code>) into the embedded page, and exposes eight file-operation blocks to TurboWarp projects through an unsandboxed custom extension. The design, protocol, implementation and usage of the system are presented. The window layer is also documented: command-line sizing, fullscreen without a decorated frame, and the measured limits of off-screen resizing that led to a fixed-size window policy.</p>
 
             <h2>1. Introduction</h2>
             <p>TurboWarp is an accelerated compiler for Scratch projects [4]. A compiled project behaves like a web page: it runs inside a sandbox, and web security rules deliberately prevent a page from silently reading arbitrary files on the host machine. Two ordinary approaches are unusable here:</p>
@@ -44,7 +44,7 @@
 // Response (from Java back to the page)
 { "ok": true,  "data": "file content..." }   // success
 { "ok": false, "error": "message" }          // failure</code></pre>
-            <p>Eight actions are supported (Table&nbsp;1).</p>
+            <p>Eight file actions are supported (Table&nbsp;1). Two further actions are internal and are issued by the host's own load handler rather than by project blocks: <code>__setWindowIcon</code> (a base64 PNG produced by rasterising the page favicon on a <code>&lt;canvas&gt;</code> with the alpha channel preserved) and <code>__setContentSize</code> (the pixel size of the largest canvas, used for one-shot window sizing).</p>
             <table class="action-table">
                 <tr><th>Action</th><th>Purpose</th><th>data (response)</th></tr>
                 <tr><td><code>readFile</code></td><td>Read a file</td><td>file content (UTF-8)</td></tr>
@@ -56,18 +56,21 @@
                 <tr><td><code>makeDir</code></td><td>Create directories recursively</td><td>empty</td></tr>
                 <tr><td><code>fileSize</code></td><td>File size in bytes</td><td>number string</td></tr>
             </table>
-            <p class="table-caption">Table 1. The eight actions implemented on the Java side.</p>
+            <p class="table-caption">Table 1. The eight file actions implemented on the Java side.</p>
 
             <h2>4. Implementation</h2>
-            <p>The system consists of four components, described below.</p>
+            <p>The system consists of five components, described below.</p>
 
             <h3>4.1 Host Application (Main.java)</h3>
             <ul class="detail-list">
                 <li>Initializes <code>CefApp</code> via jcefmaven's <code>CefAppBuilder</code> with install directory <code>jcef-bundle</code>; native libraries ship as Gradle dependencies, so no runtime download is required.</li>
                 <li>Keeps the GPU enabled &mdash; <code>--disable-gpu</code> must stay commented out because TurboWarp projects rely on WebGL hardware acceleration.</li>
                 <li>Enables off-screen rendering (<code>windowless_rendering_enabled = true</code>) so the browser embeds cleanly into a Swing window.</li>
-                <li>Attaches the <code>CefMessageRouter</code> with the file handler to the client, loads <code>Project.html</code> (the TurboWarp packager output) from <code>file:///</code>, and mirrors the page title into the window via <code>CefDisplayHandlerAdapter.onTitleChange</code>.</li>
+                <li>Pins the AWT user scale to 1:1 by setting <code>sun.java2d.uiScale=1.0</code> before any AWT class is loaded. At 185% system scaling an unscaled request for a 1400&nbsp;px window produced a 2590&nbsp;px physical surface, which the off-screen buffer does not follow; with the scale pinned the same request yields an exact 1400&nbsp;px window.</li>
+                <li>Parses named command-line flags (Section&nbsp;5.1) in any order, resolves the window size from the flags or from the HTML itself (Section&nbsp;4.5), and opens the window resizable-off (Section&nbsp;4.6).</li>
+                <li>Attaches the <code>CefMessageRouter</code> with the file handler to the client, loads the page from <code>file:///</code>, and mirrors the page title into the window via <code>CefDisplayHandlerAdapter.onTitleChange</code>.</li>
                 <li>Loads the project's favicon on a background thread and sets it as the frame icon; on window close, <code>browser.close(true)</code> and <code>cefApp.dispose()</code> release all native resources.</li>
+                <li>Keeps a geometric self-check (<code>[GEOM] ui=WxH osr=WxH match=bool</code>) that reads the renderer's private <code>browser_rect_</code> by reflection and compares it with the Swing component size; it was used to rule the layout out as a cause of the artefact described in Section&nbsp;4.6.</li>
             </ul>
 
             <h3>4.2 Message Router Handler (FileMessageRouterHandler.java)</h3>
@@ -76,13 +79,14 @@
                 <li>All operations use <code>java.nio.file</code> (<code>Files.readAllBytes</code>, <code>Files.write</code>, <code>Files.createDirectories</code>, <code>Files.list</code>, <code>Files.deleteIfExists</code>, <code>Files.size</code>).</li>
                 <li>Requests are executed on a 4-thread executor so the CEF UI thread is never blocked; <code>CefQueryCallback.success</code> is thread-safe.</li>
                 <li>Errors are caught and returned as <code>{"ok":false,"error":...}</code> instead of crashing the page.</li>
+                <li>Carries two host-side callbacks for the internal actions of Section&nbsp;3: an icon consumer and a content-size consumer.</li>
             </ul>
 
             <h3>4.3 TurboWarp Extension (extension.js)</h3>
             <ul class="detail-list">
-                <li>Requires the extension sandbox to be disabled: it throws <code>"Run it unsandbox!!!"</code> otherwise, because only unsandboxed extensions may touch <code>window.cefQuery</code>.</li>
+                <li>Requires the extension sandbox to be disabled: it throws <code>"Run it unsandbox!!"</code> otherwise, because only unsandboxed extensions may touch <code>window.cefQuery</code>.</li>
                 <li><code>callJava(payload)</code> wraps <code>window.cefQuery</code> into a Promise; <code>exec(action, path, data)</code> builds the payload, checks <code>ok</code> and returns <code>data</code>.</li>
-                <li>Exposes the green <em>Local File</em> category with eight blocks, detailed in Section&nbsp;5.2.</li>
+                <li>Exposes the green <em>Local File</em> category with eight blocks, detailed in Section&nbsp;5.4.</li>
             </ul>
 
             <h3>4.4 Favicon Loading (FaviconLoader.java)</h3>
@@ -90,7 +94,40 @@
                 <li>Scans the HTML for <code>&lt;link rel="..."&gt;</code> icons with priority <em>apple-touch-icon &gt; shortcut icon &gt; icon</em>.</li>
                 <li>Handles relative/absolute file paths, http(s) URLs and <code>data:</code> URIs; decodes PNG/JPEG/GIF/BMP and ICO files with embedded PNGs (SVG is skipped).</li>
                 <li>Enforces a 2&nbsp;MB limit; any failure silently returns <code>null</code>.</li>
+                <li>Transparency is preserved end to end: the Java pre-reader never flattens onto a background, and the JavaScript fallback draws the icon onto a fresh <code>&lt;canvas&gt;</code> without filling it first, so SVG and exotic formats keep their alpha channel.</li>
             </ul>
+
+            <h3>4.5 Window Sizing and Fullscreen</h3>
+            <p>Window size is decided once, at launch, from four sources in decreasing priority: explicit <code>-x</code>/<code>-y</code> flags, a static probe of the HTML file, a dynamic probe of the live page, and finally the defaults (1280&times;800).</p>
+            <ul class="detail-list">
+                <li><strong>Static probe.</strong> The HTML is read as text and three patterns are tried in order: a <code>viewport</code> declaration carrying pixel values, a <code>&lt;canvas width="..." height="..."&gt;</code> tag, and an inline <code>width</code>/<code>height</code> style in px on <code>&lt;html&gt;</code> or <code>&lt;body&gt;</code>. TurboWarp output typically declares only <code>width=device-width</code>, so this stage frequently returns nothing.</li>
+                <li><strong>Dynamic probe.</strong> After <code>onLoadEnd</code> the host injects a script that picks the <em>largest</em> canvas by bounding-box area and reports its pixel size through <code>__setContentSize</code>; the window is resized once. If the reported size is within <code>max(64, size/8)</code> of the current window on both axes, the page is considered fluid and the report is ignored &mdash; this prevents a responsive project from collapsing the window to its canvas size.</li>
+                <li><strong>Fullscreen.</strong> Fullscreen is requested with the <code>-fullscreen</code> flag (alias <code>-f</code>) and implemented as an undecorated window whose bounds equal the screen bounds: <code>setUndecorated(true)</code> plus <code>setBounds(screenBounds)</code>. Neither <code>setFullScreenWindow</code> nor <code>setAlwaysOnTop</code> is called, so the window keeps normal Z-order and can be covered or left with Alt+Tab. On a 2560&times;1440 host the result is measured as <code>2560x1440 at 0,0, caption=false, topmost=false</code>.</li>
+                <li><strong>No decorations, no scrollbars.</strong> The browser component is placed in the <code>CENTER</code> of a <code>BorderLayout</code>; the page itself is asked to reflow, and no <code>JScrollPane</code> is used, so the document follows the viewport instead of being clipped.</li>
+            </ul>
+
+            <h3>4.6 The Resize Boundary of Off-Screen Rendering</h3>
+            <p>The host initially allowed free resizing. That produced a reproducible artefact: after a series of resizes, the part of the window beyond the previous frame turns black, and the window then stops repainting and stops answering mouse events (window focus events still arrive). The effect is cumulative &mdash; a single resize is harmless, while the same size reached after many resizes is not.</p>
+            <p>Measurements were taken on a 2560&times;1440 host at 185% scaling by capturing the window rectangle and sampling a grid of pixels, classifying them as black (all channels &lt; 40), white (&gt; 240) or content. The share of black area depends on the target size and on how many resizes preceded it (Table&nbsp;2).</p>
+            <table class="action-table">
+                <tr><th>Step</th><th>Requested size</th><th>Black area</th><th>White area</th><th>Content</th></tr>
+                <tr><td>#01</td><td>800&times;600</td><td>2.6%</td><td>83.4%</td><td>13.9%</td></tr>
+                <tr><td>#02</td><td>1200&times;800</td><td>18.9%</td><td>71.5%</td><td>9.6%</td></tr>
+                <tr><td>#04</td><td>1600&times;1000</td><td>50.9%</td><td>43.7%</td><td>5.4%</td></tr>
+                <tr><td>#08</td><td>1800&times;1100</td><td>59.2%</td><td>35.9%</td><td>4.9%</td></tr>
+                <tr><td>#14</td><td>1700&times;1050</td><td>55.3%</td><td>39.5%</td><td>5.2%</td></tr>
+                <tr><td>#10</td><td>500&times;400</td><td>4.2%</td><td>76.7%</td><td>19.1%</td></tr>
+                <tr><td>#15</td><td>1024&times;768</td><td>2.9%</td><td>87.5%</td><td>9.6%</td></tr>
+            </table>
+            <p class="table-caption">Table 2. Black area after successive resizes of one process. A fresh process launched directly at 1800&times;1100 renders correctly, so the defect is cumulative rather than size-dependent.</p>
+            <p>Three observations narrow the cause down:</p>
+            <ul class="detail-list">
+                <li><code>[GEOM]</code> reported <code>match=true</code> in all fifteen rounds &mdash; the Swing component size and the renderer's <code>browser_rect_</code> were identical every time, so the layout and the reported viewport are not out of sync.</li>
+                <li><code>CefRenderer</code> carries <code>view_width_</code> / <code>view_height_</code> and rebuilds its texture with <code>glTexImage2D</code> whenever those change, so a correctly delivered frame of a new size would be uploadable.</li>
+                <li>When the window is stuck, the painted content sits in the <em>bottom-left</em> corner instead of the top-left, and the rest of the window shows the GL clear colour. That is a viewport/projection-state error on the GL side, not missing content: the frame is being drawn with the wrong origin and the wrong extent.</li>
+            </ul>
+            <p>As a partial mitigation the host re-notifies Chromium of the viewport after every resize by reflectively invoking <code>CefBrowser_N.wasResized(w, h)</code> at 150, 500 and 1200&nbsp;ms. With this in place the first ten rounds fell to 0.3&ndash;4.6% black, but large sizes late in the sequence still reached 45&ndash;56%, so the artefact is reduced rather than eliminated.</p>
+            <p>The adopted policy is therefore to remove the trigger: the window is opened with <code>setResizable(false)</code> and the size is fixed at launch. On Windows the window style then reads <code>0x16CA0000</code> with neither <code>WS_THICKFRAME</code> nor <code>WS_MAXIMIZEBOX</code> set, so the border cannot be dragged and the maximise button is disabled. Changing the size means relaunching with different flags, which always starts from a clean first frame. A size injected externally through <code>SetWindowPos</code> can still resize the window and will reproduce the artefact; that path is outside the application's own interaction.</p>
 
             <h2>5. Usage</h2>
             <h3>5.1 Setup</h3>
@@ -100,9 +137,22 @@
   --add-exports java.desktop/sun.awt=ALL-UNNAMED \
   --add-exports java.desktop/sun.java2d=ALL-UNNAMED \
   --add-opens java.desktop/sun.awt=ALL-UNNAMED \
-  -jar Java-js_Bridge-1.0-all.jar</code></pre>
+  -jar Java-js_Bridge-1.0-all.jar [options]</code></pre>
+            <p>Options are named, order-independent, and accept either <code>-flag value</code> or <code>-flag=value</code> (Table&nbsp;3). Positional forms (<code>1024 768 Project.html</code>, or a bare <code>full</code>) are still accepted for compatibility.</p>
+            <table class="action-table">
+                <tr><th>Flag</th><th>Meaning</th><th>Default</th></tr>
+                <tr><td><code>-x</code>, <code>-width</code></td><td>Window width in pixels; accepts <code>-x=1000</code></td><td>probe of the HTML, else 1280</td></tr>
+                <tr><td><code>-y</code>, <code>-height</code></td><td>Window height in pixels; accepts <code>-y=700</code></td><td>probe of the HTML, else 800</td></tr>
+                <tr><td><code>-html</code>, <code>-file</code></td><td>HTML file to open, relative to the working directory</td><td><code>Project.html</code></td></tr>
+                <tr><td><code>-fullscreen</code>, <code>-full</code>, <code>-f</code></td><td>Undecorated window covering the whole screen, normal Z-order</td><td>off (windowed)</td></tr>
+            </table>
+            <p class="table-caption">Table 3. Command-line options. Unknown flags and non-positive sizes abort with exit code 2 and print the usage line.</p>
+            <pre class="code-block"><code>java -jar Java-js_Bridge-1.0-all.jar -html Project.html
+java -jar Java-js_Bridge-1.0-all.jar -x 1024 -y 768 -html Project.html
+java -jar Java-js_Bridge-1.0-all.jar -html Project.html -y 700 -x 1000   rem any order
+java -jar Java-js_Bridge-1.0-all.jar -f -html Project.html</code></pre>
             <ol class="detail-list">
-                <li>Place <code>Project.html</code> (the TurboWarp packager output) next to the application and start it. A Swing window opens with the project inside an embedded Chromium.</li>
+                <li>Place the HTML (the TurboWarp packager output) next to the application and start it. A Swing window opens with the project inside an embedded Chromium; the window size is the one you asked for and cannot be changed afterwards.</li>
                 <li>In the project, load the <em>Local File</em> extension in unsandboxed mode &mdash; it refuses to start otherwise.</li>
                 <li>Build blocks from the <em>Local File</em> palette.</li>
             </ol>
@@ -116,12 +166,26 @@
                 <figcaption>Figure 3. The application in operation: embedded project, favicon as the window icon, and file content read from disk.</figcaption>
             </figure>
 
-            <h3>5.2 Block Reference</h3>
+            <h3>5.2 Resizing Policy</h3>
+            <p>The window is deliberately not resizable (Section&nbsp;4.6). The document is not clipped and no scrollbars are added: the browser occupies the whole content pane and the page reflows to it, so a project laid out with percentage sizes fills the window, while a fixed-size stage stays centred and keeps its proportions. To work at another size, relaunch with different <code>-x</code>/<code>-y</code> values.</p>
+
+            <h3>5.3 Example</h3>
+            <p>A minimal auto-save routine combining the blocks below:</p>
+            <pre class="code-block"><code>when green flag clicked
+if &lt;exists [save.txt]&gt; then
+    set [content v] to (read [save.txt])     // reporter -&gt; file text
+    say (content)
+else
+    write [hello] into [save.txt]            // command, awaits completion
+end</code></pre>
+            <p>Reporter and boolean blocks return their value directly to Scratch; command blocks finish asynchronously and the next block runs after the operation completes. This is sufficient to build auto-save, level editors, asset loaders or text-based games that read and write real files on disk.</p>
+
+            <h3>5.4 Block Reference</h3>
             <p>Each block is presented in its own subsection, with a demonstration shown as a short animation.</p>
 
             <section class="block-entry">
                 <header class="block-entry-head">
-                    <span class="block-id">5.2.1</span>
+                    <span class="block-id">5.4.1</span>
                     <code class="block-name">read [PATH]</code>
                     <span class="block-type block-reporter">Reporter</span>
                 </header>
@@ -134,7 +198,7 @@
 
             <section class="block-entry">
                 <header class="block-entry-head">
-                    <span class="block-id">5.2.2</span>
+                    <span class="block-id">5.4.2</span>
                     <code class="block-name">write [DATA] into [PATH]</code>
                     <span class="block-type block-command">Command</span>
                 </header>
@@ -147,7 +211,7 @@
 
             <section class="block-entry">
                 <header class="block-entry-head">
-                    <span class="block-id">5.2.3</span>
+                    <span class="block-id">5.4.3</span>
                     <code class="block-name">append [DATA] to [PATH]</code>
                     <span class="block-type block-command">Command</span>
                 </header>
@@ -160,7 +224,7 @@
 
             <section class="block-entry">
                 <header class="block-entry-head">
-                    <span class="block-id">5.2.4</span>
+                    <span class="block-id">5.4.4</span>
                     <code class="block-name">list directory [PATH]</code>
                     <span class="block-type block-reporter">Reporter</span>
                 </header>
@@ -173,7 +237,7 @@
 
             <section class="block-entry">
                 <header class="block-entry-head">
-                    <span class="block-id">5.2.5</span>
+                    <span class="block-id">5.4.5</span>
                     <code class="block-name">exists [PATH]</code>
                     <span class="block-type block-boolean">Boolean</span>
                 </header>
@@ -186,7 +250,7 @@
 
             <section class="block-entry">
                 <header class="block-entry-head">
-                    <span class="block-id">5.2.6</span>
+                    <span class="block-id">5.4.6</span>
                     <code class="block-name">delete [PATH]</code>
                     <span class="block-type block-command">Command</span>
                 </header>
@@ -199,7 +263,7 @@
 
             <section class="block-entry">
                 <header class="block-entry-head">
-                    <span class="block-id">5.2.7</span>
+                    <span class="block-id">5.4.7</span>
                     <code class="block-name">make directory [PATH]</code>
                     <span class="block-type block-command">Command</span>
                 </header>
@@ -212,7 +276,7 @@
 
             <section class="block-entry">
                 <header class="block-entry-head">
-                    <span class="block-id">5.2.8</span>
+                    <span class="block-id">5.4.8</span>
                     <code class="block-name">file size of [PATH]</code>
                     <span class="block-type block-reporter">Reporter</span>
                 </header>
@@ -223,17 +287,6 @@
                 </figure>
             </section>
 
-            <h3>5.3 Example</h3>
-            <p>A minimal auto-save routine combining the blocks above:</p>
-            <pre class="code-block"><code>when green flag clicked
-if &lt;exists [save.txt]&gt; then
-    set [content v] to (read [save.txt])     // reporter -&gt; file text
-    say (content)
-else
-    write [hello] into [save.txt]            // command, awaits completion
-end</code></pre>
-            <p>Reporter and boolean blocks return their value directly to Scratch; command blocks finish asynchronously and the next block runs after the operation completes. This is sufficient to build auto-save, level editors, asset loaders or text-based games that read and write real files on disk.</p>
-
             <h2>6. Security Considerations</h2>
             <ul class="detail-list">
                 <li>The unsandboxed extension runs with the same permissions as the current user. A historical TurboWarp Desktop bug (CVE-2023-40168 [6]) allowed a malicious project to exfiltrate arbitrary files, so this bridge should only be enabled for trusted projects.</li>
@@ -242,7 +295,7 @@ end</code></pre>
             </ul>
 
             <h2>7. Availability &amp; Downloads</h2>
-            <p>The release <strong>Java-js_Bridge-1.0-all</strong> provides two assets: a runnable fat jar, and a zip archive that contains the jar <em>plus the complete <code>jcef-bundle</code> folder</em> (Chromium native libraries), enabling an offline, out-of-the-box setup. Cross-platform launcher scripts are available below &mdash; remember that the JVM flags in Section&nbsp;5.1 are required on every platform.</p>
+            <p>The release <strong>Java-js_Bridge-1.0-all</strong> provides two assets: a runnable fat jar, and a zip archive that contains the jar <em>plus the complete <code>jcef-bundle</code> folder</em> (Chromium native libraries), enabling an offline, out-of-the-box setup. Cross-platform launcher scripts are available below &mdash; remember that the JVM flags in Section&nbsp;5.1 are required on every platform. The launchers forward their own arguments to the jar, so the options of Table&nbsp;3 can be passed straight through.</p>
             <div class="project-links">
                 <a class="mock-link" href="https://github.com/RS6048/rs6048.github.io/releases/download/Projects_Turbowarp_Java-js_Bridge/Java-js_Bridge-1.0-all.zip" target="_blank" rel="noopener"><i class="fas fa-file-archive"></i> Java-js_Bridge-1.0-all.zip <span class="file-note">(jar + complete jcef-bundle folder)</span></a>
                 <a class="mock-link" href="https://github.com/RS6048/rs6048.github.io/releases/download/Projects_Turbowarp_Java-js_Bridge/Java-js_Bridge-1.0-all.jar" target="_blank" rel="noopener"><i class="fas fa-file-archive"></i> Java-js_Bridge-1.0-all.jar <span class="file-note">(main runnable fat jar)</span></a>
